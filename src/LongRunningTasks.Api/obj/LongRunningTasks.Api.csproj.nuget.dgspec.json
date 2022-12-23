@@ -1,0 +1,219 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Repo\\NewWork\\TestProjects\\LongRunningTasks\\src\\LongRunningTasks.Api\\LongRunningTasks.Api.csproj": {}
+  },
+  "projects": {
+    "C:\\Repo\\NewWork\\TestProjects\\LongRunningTasks\\src\\LongRunningTasks.Api\\LongRunningTasks.Api.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Repo\\NewWork\\TestProjects\\LongRunningTasks\\src\\LongRunningTasks.Api\\LongRunningTasks.Api.csproj",
+        "projectName": "LongRunningTasks.Api",
+        "projectPath": "C:\\Repo\\NewWork\\TestProjects\\LongRunningTasks\\src\\LongRunningTasks.Api\\LongRunningTasks.Api.csproj",
+        "packagesPath": "C:\\Users\\Yurii\\.nuget\\packages\\",
+        "outputPath": "C:\\Repo\\NewWork\\TestProjects\\LongRunningTasks\\src\\LongRunningTasks.Api\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\Yurii\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net6.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {},
+          "https://nuget.telerik.com/v3/index.json": {}
+        },
+        "frameworks": {
+          "net6.0": {
+            "targetAlias": "net6.0",
+            "projectReferences": {
+              "C:\\Repo\\NewWork\\TestProjects\\LongRunningTasks\\src\\LongRunningTasks.Application\\LongRunningTasks.Application.csproj": {
+                "projectPath": "C:\\Repo\\NewWork\\TestProjects\\LongRunningTasks\\src\\LongRunningTasks.Application\\LongRunningTasks.Application.csproj"
+              },
+              "C:\\Repo\\NewWork\\TestProjects\\LongRunningTasks\\src\\LongRunningTasks.Infrastructure\\LongRunningTasks.Infrastructure.csproj": {
+                "projectPath": "C:\\Repo\\NewWork\\TestProjects\\LongRunningTasks\\src\\LongRunningTasks.Infrastructure\\LongRunningTasks.Infrastructure.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net6.0": {
+          "targetAlias": "net6.0",
+          "dependencies": {
+            "Swashbuckle.AspNetCore": {
+              "target": "Package",
+              "version": "[6.2.3, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.AspNetCore.App": {
+              "privateAssets": "none"
+            },
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.301\\RuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "C:\\Repo\\NewWork\\TestProjects\\LongRunningTasks\\src\\LongRunningTasks.Application\\LongRunningTasks.Application.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Repo\\NewWork\\TestProjects\\LongRunningTasks\\src\\LongRunningTasks.Application\\LongRunningTasks.Application.csproj",
+        "projectName": "LongRunningTasks.Application",
+        "projectPath": "C:\\Repo\\NewWork\\TestProjects\\LongRunningTasks\\src\\LongRunningTasks.Application\\LongRunningTasks.Application.csproj",
+        "packagesPath": "C:\\Users\\Yurii\\.nuget\\packages\\",
+        "outputPath": "C:\\Repo\\NewWork\\TestProjects\\LongRunningTasks\\src\\LongRunningTasks.Application\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\Yurii\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net6.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {},
+          "https://nuget.telerik.com/v3/index.json": {}
+        },
+        "frameworks": {
+          "net6.0": {
+            "targetAlias": "net6.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net6.0": {
+          "targetAlias": "net6.0",
+          "dependencies": {
+            "MediatR.Extensions.Microsoft.DependencyInjection": {
+              "target": "Package",
+              "version": "[11.0.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.AspNetCore.App": {
+              "privateAssets": "none"
+            },
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.301\\RuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "C:\\Repo\\NewWork\\TestProjects\\LongRunningTasks\\src\\LongRunningTasks.Infrastructure\\LongRunningTasks.Infrastructure.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Repo\\NewWork\\TestProjects\\LongRunningTasks\\src\\LongRunningTasks.Infrastructure\\LongRunningTasks.Infrastructure.csproj",
+        "projectName": "LongRunningTasks.Infrastructure",
+        "projectPath": "C:\\Repo\\NewWork\\TestProjects\\LongRunningTasks\\src\\LongRunningTasks.Infrastructure\\LongRunningTasks.Infrastructure.csproj",
+        "packagesPath": "C:\\Users\\Yurii\\.nuget\\packages\\",
+        "outputPath": "C:\\Repo\\NewWork\\TestProjects\\LongRunningTasks\\src\\LongRunningTasks.Infrastructure\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\Yurii\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net6.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {},
+          "https://nuget.telerik.com/v3/index.json": {}
+        },
+        "frameworks": {
+          "net6.0": {
+            "targetAlias": "net6.0",
+            "projectReferences": {
+              "C:\\Repo\\NewWork\\TestProjects\\LongRunningTasks\\src\\LongRunningTasks.Application\\LongRunningTasks.Application.csproj": {
+                "projectPath": "C:\\Repo\\NewWork\\TestProjects\\LongRunningTasks\\src\\LongRunningTasks.Application\\LongRunningTasks.Application.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net6.0": {
+          "targetAlias": "net6.0",
+          "dependencies": {
+            "Microsoft.Extensions.Hosting.Abstractions": {
+              "target": "Package",
+              "version": "[7.0.0, )"
+            },
+            "SendGrid": {
+              "target": "Package",
+              "version": "[9.28.1, )"
+            },
+            "WTelegramClient": {
+              "target": "Package",
+              "version": "[3.1.5, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.AspNetCore.App": {
+              "privateAssets": "none"
+            },
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.301\\RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

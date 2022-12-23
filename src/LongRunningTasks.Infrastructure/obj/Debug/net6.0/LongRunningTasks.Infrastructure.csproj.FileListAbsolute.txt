@@ -1,0 +1,15 @@
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Infrastructure\obj\Debug\net6.0\LongRunningTasks.Infrastructure.csproj.AssemblyReference.cache
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Infrastructure\obj\Debug\net6.0\LongRunningTasks.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Infrastructure\obj\Debug\net6.0\LongRunningTasks.Infrastructure.AssemblyInfoInputs.cache
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Infrastructure\obj\Debug\net6.0\LongRunningTasks.Infrastructure.AssemblyInfo.cs
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Infrastructure\obj\Debug\net6.0\LongRunningTasks.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Infrastructure\bin\Debug\net6.0\LongRunningTasks.Infrastructure.deps.json
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Infrastructure\bin\Debug\net6.0\LongRunningTasks.Infrastructure.dll
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Infrastructure\bin\Debug\net6.0\LongRunningTasks.Infrastructure.pdb
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Infrastructure\bin\Debug\net6.0\LongRunningTasks.Application.dll
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Infrastructure\bin\Debug\net6.0\LongRunningTasks.Application.pdb
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Infrastructure\obj\Debug\net6.0\LongRunningTasks.Infrastructure.csproj.CopyComplete
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Infrastructure\obj\Debug\net6.0\LongRunningTasks.Infrastructure.dll
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Infrastructure\obj\Debug\net6.0\refint\LongRunningTasks.Infrastructure.dll
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Infrastructure\obj\Debug\net6.0\LongRunningTasks.Infrastructure.pdb
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Infrastructure\obj\Debug\net6.0\ref\LongRunningTasks.Infrastructure.dll

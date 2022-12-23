@@ -1,0 +1,12 @@
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Application\bin\Debug\net6.0\LongRunningTasks.Application.deps.json
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Application\bin\Debug\net6.0\LongRunningTasks.Application.dll
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Application\bin\Debug\net6.0\LongRunningTasks.Application.pdb
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Application\obj\Debug\net6.0\LongRunningTasks.Application.csproj.AssemblyReference.cache
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Application\obj\Debug\net6.0\LongRunningTasks.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Application\obj\Debug\net6.0\LongRunningTasks.Application.AssemblyInfoInputs.cache
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Application\obj\Debug\net6.0\LongRunningTasks.Application.AssemblyInfo.cs
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Application\obj\Debug\net6.0\LongRunningTasks.Application.csproj.CoreCompileInputs.cache
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Application\obj\Debug\net6.0\LongRunningTasks.Application.dll
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Application\obj\Debug\net6.0\refint\LongRunningTasks.Application.dll
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Application\obj\Debug\net6.0\LongRunningTasks.Application.pdb
+C:\Repo\NewWork\TestProjects\LongRunningTasks\src\LongRunningTasks.Application\obj\Debug\net6.0\ref\LongRunningTasks.Application.dll
