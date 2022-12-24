@@ -3,13 +3,13 @@ using LongRunningTasks.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// For using backgroud workers as Windows Services
+// builder.Host.UseWindowsService(); 
 
+// Add services to the container.
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
-
 builder.Services.AddControllers();
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

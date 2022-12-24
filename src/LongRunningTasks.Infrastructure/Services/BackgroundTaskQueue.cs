@@ -10,7 +10,7 @@ namespace LongRunningTasks.Infrastructure.Services
 {
     public class BackgroundTaskQueue : IBackgroundTaskQueue
     {
-        private readonly Channel<Func<CancellationToken, ValueTask>> _queue;
+        private readonly Channel<Func<CancellationToken, Task>> _queue;
 
         public BackgroundTaskQueue(int capacity)
         {
@@ -18,11 +18,11 @@ namespace LongRunningTasks.Infrastructure.Services
             {
                 FullMode = BoundedChannelFullMode.Wait
             };
-            _queue = Channel.CreateBounded<Func<CancellationToken, ValueTask>>(options);
+            _queue = Channel.CreateBounded<Func<CancellationToken, Task>>(options);
         }
 
-        public async ValueTask QueueBackgroundWorkItemAsync(
-            Func<CancellationToken, ValueTask> workItem)
+        public async Task QueueBackgroundWorkItemAsync(
+            Func<CancellationToken, Task> workItem)
         {
             if (workItem == null)
             {
@@ -32,12 +32,30 @@ namespace LongRunningTasks.Infrastructure.Services
             await _queue.Writer.WriteAsync(workItem);
         }
 
-        public async ValueTask<Func<CancellationToken, ValueTask>> DequeueAsync(
-            CancellationToken cancellationToken)
+        public async Task<IEnumerable<Func<CancellationToken, Task>>> DequeueAsync(
+            CancellationToken cancellationToken, int amount = 1)
         {
-            var workItem = await _queue.Reader.ReadAsync(cancellationToken);
+            if (amount > 10 || amount < 1)
+            {
+                throw new Exception("Amount of dequeueing items is out of range.");
+            }
 
-            return workItem;
+            var workItems = new List<Func<CancellationToken, Task>>();
+
+            for (int i = 0; i < amount; i++)
+            {
+                var workItem = await _queue.Reader.ReadAsync(cancellationToken);
+
+                workItems.Add(workItem);
+
+                if (_queue.Reader.Count == 0)
+                {
+                    break;
+                }
+            }
+
+            return workItems;
         }
+
     }
 }

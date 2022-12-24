@@ -21,14 +21,15 @@ namespace LongRunningTasks.Infrastructure.Services
         {
             _logger.LogInformation("Timed Hosted Service running.");
 
-            var task = new Task(() =>
-            {
-                System.Timers.Timer timer = new(interval: 3000);
-                timer.Elapsed += async (sender, e) => await DoWork();
-                timer.Start();
-            });
+            System.Timers.Timer timer = new(interval: 3000);
+            timer.Elapsed += async (sender, e) => await DoWork();
+            timer.Start();
 
-            return task;
+            // we must return Task.CompletedTask otherwise
+            // other services and booting will wait until this method returns Task.CompletedTask.
+            // That is why we do not use here await keyword!!!
+            // It is usefull when we wanna wait for example for doing some migrations in database
+            return Task.CompletedTask;
         }
 
         private async Task DoWork()
@@ -43,7 +44,7 @@ namespace LongRunningTasks.Infrastructure.Services
                 "Timed Hosted Service is working. " +
                 "Count: {Count}. " +
                 "Thread with id: {id}. " +
-                "Process with id: {id}",
+                "Process with id: {id}", 
                 count, currentThreadId, currentProcessId);
         }
 

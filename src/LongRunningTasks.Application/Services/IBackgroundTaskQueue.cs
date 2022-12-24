@@ -8,9 +8,9 @@ namespace LongRunningTasks.Application.Services
 {
     public interface IBackgroundTaskQueue
     {
-        ValueTask QueueBackgroundWorkItemAsync(Func<CancellationToken, ValueTask> workItem);
+        Task QueueBackgroundWorkItemAsync(Func<CancellationToken, Task> workItem);
 
-        ValueTask<Func<CancellationToken, ValueTask>> DequeueAsync(
-            CancellationToken cancellationToken);
+        Task<IEnumerable<Func<CancellationToken, Task>>> DequeueAsync(
+            CancellationToken cancellationToken, int amount = 1);
     }
 }

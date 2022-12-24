@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "KL930CAlmUmq+WK4gnR057oSzkxNCMdmaLLlmxoPAMc=",
+  "Source": "LongRunningTasks.Api",
+  "BasePath": "_content/LongRunningTasks.Api",
+  "Mode": "Default",
+  "ManifestType": "Publish",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}

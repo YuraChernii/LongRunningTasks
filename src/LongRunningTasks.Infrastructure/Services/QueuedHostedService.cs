@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 
 namespace LongRunningTasks.Infrastructure.Services
 {
+    // BackgroundService implements IHostedService
     internal class QueuedHostedService : BackgroundService
     {
         private readonly ILogger<QueuedHostedService> _logger;
@@ -36,17 +37,23 @@ namespace LongRunningTasks.Infrastructure.Services
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                var workItem =
-                    await TaskQueue.DequeueAsync(stoppingToken);
+                var workItems =
+                    await TaskQueue.DequeueAsync(stoppingToken, amount: 3);
 
                 try
                 {
-                    await workItem(stoppingToken);
+                    var tasks = new List<Task>();
+                    foreach (var workItem in workItems)
+                    {
+                        tasks.Add(workItem(stoppingToken));
+                    }
+
+                    await Task.WhenAll(tasks);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex,
-                        "Error occurred executing {WorkItem}.", nameof(workItem));
+                        "Error occurred executing {workItems}.", nameof(workItems));
                 }
             }
         }

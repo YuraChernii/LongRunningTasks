@@ -27,7 +27,7 @@ namespace LongRunningTasks.Application.Commands.EnqueueTask
             return new EnqueueTaskDTO();
         }
 
-        private async ValueTask BuildWorkItem(CancellationToken token)
+        private async Task BuildWorkItem(CancellationToken token)
         {
             var id = Guid.NewGuid();
 
