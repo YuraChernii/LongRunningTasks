@@ -1,5 +1,6 @@
 using LongRunningTasks.Application.Commands.EnqueueTask;
 using LongRunningTasks.Application.Commands.TestHangFire;
+using LongRunningTasks.Application.Commands.TestObservable;
 using LongRunningTasks.Application.DTOs;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -37,5 +38,14 @@ namespace LongRunningTasks.Api.Controllers
 
             return Ok(result);
         }
+
+        [HttpPost("observable")]
+        public async Task<IActionResult> TestObservable(TestObservable testObservable)
+        {
+            var result = await _mediator.Send(testObservable);
+
+            return Ok(result);
+        }
+
     }
 }

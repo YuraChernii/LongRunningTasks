@@ -14,6 +14,7 @@ namespace LongRunningTasks.Infrastructure
         {
 
             builder.Services.Configure<EmailConfig>(builder.Configuration.GetSection("EmailConfig"));
+            builder.Services.Configure<PipeConfig>(builder.Configuration.GetSection("PipeConfig"));
 
             builder.Services.AddHostedService<TimedHostedService>();
 
@@ -25,6 +26,8 @@ namespace LongRunningTasks.Infrastructure
                     queueCapacity = 100;
                 return new BackgroundTaskQueue(queueCapacity);
             });
+
+            builder.Services.AddSingleton<IPipeService, PipeService>();
 
             builder.AddHangFireServices();
         }
