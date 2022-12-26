@@ -1,4 +1,5 @@
 ﻿
+using Hangfire;
 using LongRunningTasks.Application.Services;
 using LongRunningTasks.Infrastructure.Config;
 using LongRunningTasks.Infrastructure.Services;
@@ -25,6 +26,13 @@ namespace LongRunningTasks.Infrastructure
                 return new BackgroundTaskQueue(queueCapacity);
             });
 
+            builder.AddHangFireServices();
+        }
+
+        public static void AddHangFireServices(this WebApplicationBuilder builder)
+        {
+            builder.Services.AddHangfire(x => x.UseSqlServerStorage(builder.Configuration["ConnectionStrings:DefaultConnection"]));
+            builder.Services.AddHangfireServer();
         }
     }
 }

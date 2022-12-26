@@ -1,3 +1,4 @@
+using Hangfire;
 using LongRunningTasks.Application;
 using LongRunningTasks.Infrastructure;
 
@@ -5,16 +6,18 @@ var builder = WebApplication.CreateBuilder(args);
 
 // For using backgroud workers as Windows Services
 // builder.Host.UseWindowsService(); 
-
+    
 // Add services to the container.
-builder.Logging.ClearProviders();
+//builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
+
+builder.AddApplication();
+builder.AddInfrastructure();
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.AddApplication();
-builder.AddInfrastructure();
 
 var app = builder.Build();
 
@@ -26,6 +29,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseHangfireDashboard();
 
 app.UseAuthorization();
 

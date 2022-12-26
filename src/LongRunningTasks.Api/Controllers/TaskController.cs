@@ -1,4 +1,5 @@
 using LongRunningTasks.Application.Commands.EnqueueTask;
+using LongRunningTasks.Application.Commands.TestHangFire;
 using LongRunningTasks.Application.DTOs;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -7,14 +8,14 @@ namespace LongRunningTasks.Api.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class ReminderController : ControllerBase
+    public class TaskController : ControllerBase
     {
         private readonly IMediator _mediator;
-        private readonly ILogger<ReminderController> _logger;
+        private readonly ILogger<TaskController> _logger;
 
-        public ReminderController(
+        public TaskController(
             IMediator mediator,
-            ILogger<ReminderController> logger
+            ILogger<TaskController> logger
             )
         {
             _logger = logger;
@@ -22,12 +23,19 @@ namespace LongRunningTasks.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> SetReminder(EnqueueTask setEmailReminder)
+        public async Task<IActionResult> EnqueueTask(EnqueueTask setEmailReminder)
         {
             var result = await _mediator.Send(setEmailReminder);
 
             return Ok(result);
         }
 
+        [HttpPost("hangfire")]
+        public async Task<IActionResult> TestHangFire(TestHangFire testHangFire)
+        {
+            var result = await _mediator.Send(testHangFire);
+
+            return Ok(result);
+        }
     }
 }
