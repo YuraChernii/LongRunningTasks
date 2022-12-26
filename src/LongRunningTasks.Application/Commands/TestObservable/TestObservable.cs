@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace LongRunningTasks.Application.Commands.TestObservable
 {
-    public class TestObservable: IRequest<TestObservableQueueDTO>
+    public class TestObservable: IRequest<TestObservableDTO>
     {
     }
 }

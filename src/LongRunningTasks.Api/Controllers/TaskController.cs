@@ -1,4 +1,4 @@
-using LongRunningTasks.Application.Commands.EnqueueTask;
+using LongRunningTasks.Application.Commands.TestBackgroundService;
 using LongRunningTasks.Application.Commands.TestHangFire;
 using LongRunningTasks.Application.Commands.TestObservable;
 using LongRunningTasks.Application.DTOs;
@@ -23,8 +23,8 @@ namespace LongRunningTasks.Api.Controllers
             _mediator = mediator;
         }
 
-        [HttpPost]
-        public async Task<IActionResult> EnqueueTask(EnqueueTask setEmailReminder)
+        [HttpPost("background-service")]
+        public async Task<IActionResult> TestBackgroundService(TestBackgroundService setEmailReminder)
         {
             var result = await _mediator.Send(setEmailReminder);
 

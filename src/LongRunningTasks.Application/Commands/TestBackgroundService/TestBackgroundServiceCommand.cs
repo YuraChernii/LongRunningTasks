@@ -8,23 +8,23 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LongRunningTasks.Application.Commands.EnqueueTask
+namespace LongRunningTasks.Application.Commands.TestBackgroundService
 {
-    internal class EnqueueTaskCommand : IRequestHandler<EnqueueTask, EnqueueTaskDTO>
+    internal class TestBackgroundServiceCommand : IRequestHandler<TestBackgroundService, TestPipeDTO>
     {
         private readonly IBackgroundTaskQueue _taskQueue;
-        private readonly ILogger<EnqueueTaskCommand> _logger;
-        public EnqueueTaskCommand(IBackgroundTaskQueue taskQueue, ILogger<EnqueueTaskCommand> logger)
+        private readonly ILogger<TestBackgroundServiceCommand> _logger;
+        public TestBackgroundServiceCommand(IBackgroundTaskQueue taskQueue, ILogger<TestBackgroundServiceCommand> logger)
         {
             _taskQueue = taskQueue;
             _logger = logger;
         }
 
-        public async Task<EnqueueTaskDTO> Handle(EnqueueTask request, CancellationToken cancellationToken)
+        public async Task<TestPipeDTO> Handle(TestBackgroundService request, CancellationToken cancellationToken)
         {
             await _taskQueue.QueueBackgroundWorkItemAsync(BuildWorkItem);
 
-            return new EnqueueTaskDTO();
+            return new TestPipeDTO();
         }
 
         private async Task BuildWorkItem(CancellationToken token)

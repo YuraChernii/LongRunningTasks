@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace LongRunningTasks.Application.Commands.TestObservable
 {
-    internal class TestObservableHandler : IRequestHandler<TestObservable, TestObservableQueueDTO>
+    internal class TestObservableHandler : IRequestHandler<TestObservable, TestObservableDTO>
     {
         private readonly ILogger<TestObservableHandler> _logger;
         private readonly IPipeService _pipeService;
@@ -21,7 +21,7 @@ namespace LongRunningTasks.Application.Commands.TestObservable
             _pipeService = pipeService;
         }
 
-        public async Task<TestObservableQueueDTO> Handle(TestObservable request, CancellationToken cancellationToken)
+        public async Task<TestObservableDTO> Handle(TestObservable request, CancellationToken cancellationToken)
         {
             var func = new Func<CancellationToken, Task>(async (CancellationToken token) =>
             {
@@ -32,7 +32,7 @@ namespace LongRunningTasks.Application.Commands.TestObservable
 
             _pipeService.Submit(func);
 
-            return new TestObservableQueueDTO();
+            return new TestObservableDTO();
         }
     }
 }
