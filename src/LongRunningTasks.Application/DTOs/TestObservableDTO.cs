@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace LongRunningTasks.Application.DTOs
 {
-    public class TestObservableDTO
+    public class TestObservableDTO: IDTO
     {
     }
 }

@@ -6,8 +6,7 @@ using System.Threading.Tasks;
 
 namespace LongRunningTasks.Application.DTOs
 {
-    public class TestPipeDTO: IDTO
+    public interface IDTO
     {
-
     }
 }

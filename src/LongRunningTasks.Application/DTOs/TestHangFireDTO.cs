@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace LongRunningTasks.Application.DTOs
 {
-    public class TestHangFireDTO
+    public class TestHangFireDTO: IDTO
     {
     }
 }

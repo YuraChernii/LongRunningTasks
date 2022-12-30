@@ -4,10 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LongRunningTasks.Application.DTOs
+namespace LongRunningTasks.Infrastructure.Databases.RabbitDB.Tables
 {
-    public class TestPipeDTO: IDTO
+    public interface ITable
     {
-
     }
 }

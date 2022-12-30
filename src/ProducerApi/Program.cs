@@ -1,23 +1,17 @@
-using Hangfire;
-using LongRunningTasks.Application;
-using LongRunningTasks.Infrastructure;
+using ProducerApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// For using backgroud workers as Windows Services
-// builder.Host.UseWindowsService(); 
-    
 // Add services to the container.
-//builder.Logging.ClearProviders();
+
 builder.Logging.AddConsole();
 
-builder.AddApplication();
-builder.AddInfrastructure();
-
 builder.Services.AddControllers();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddScoped<IMessageProducer, MessageProducer>();
 
 var app = builder.Build();
 
@@ -29,8 +23,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-app.UseInfrastructure();
 
 app.UseAuthorization();
 
