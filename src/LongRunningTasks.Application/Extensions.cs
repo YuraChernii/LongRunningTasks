@@ -1,14 +1,16 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
 namespace LongRunningTasks.Application
 {
     public static class Extensions
     {
-        public static void AddApplication(this WebApplicationBuilder builder)
+        public static void AddApplication(this IServiceCollection services, IConfiguration config)
         {
-            builder.Services.AddMediatR(Assembly.GetExecutingAssembly());
+            services.AddMediatR(Assembly.GetExecutingAssembly());
         }
     }
 }

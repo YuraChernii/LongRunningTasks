@@ -1,12 +1,7 @@
 ﻿using AutoMapper;
 using LongRunningTasks.Application.DTOs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace LongRunningTasks.Infrastructure.Services.Mapping
+namespace LongRunningTasks.Infrastructure.Utilities.Mapping
 {
     public static class Extensions
     {

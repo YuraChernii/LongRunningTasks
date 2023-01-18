@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
-namespace LongRunningTasks.Infrastructure.Services
+namespace LongRunningTasks.Infrastructure.Utilities
 {
     public class BackgroundTaskQueue : IBackgroundTaskQueue
     {

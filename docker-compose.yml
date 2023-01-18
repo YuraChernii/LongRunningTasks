@@ -1,9 +1,9 @@
-version: '3.8'
+version: "3.8"
 services:
   rabbitmq:
     container_name: "rabbitmq"
     image: rabbitmq:3.8-management-alpine
-    environment: 
+    environment:
       - RABBITMQ_DEFAULT_USER=user
       - RABBITMQ_DEFAULT_PASS=user
     ports:

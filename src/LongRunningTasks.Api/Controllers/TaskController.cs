@@ -1,6 +1,8 @@
 using LongRunningTasks.Application.Commands.TestBackgroundService;
 using LongRunningTasks.Application.Commands.TestHangFire;
+using LongRunningTasks.Application.Commands.TestINotification;
 using LongRunningTasks.Application.Commands.TestObservable;
+using LongRunningTasks.Application.Commands.TestRabbitMQ;
 using LongRunningTasks.Application.DTOs;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -47,6 +49,21 @@ namespace LongRunningTasks.Api.Controllers
             return Ok(result);
         }
 
+        [HttpPost("rabbitmq")]
+        public async Task<IActionResult> TestRabbitMQ(TestRabbitMQ testRabbitMQ)
+        {
+            var result = await _mediator.Send(testRabbitMQ);
+
+            return Ok(result);
+        }
+
+        [HttpPost("notification")]
+        public async Task<IActionResult> TestINotification(TestINotification testINotification)
+        {
+            await _mediator.Publish(testINotification);
+
+            return Ok();
+        }
 
     }
 }
