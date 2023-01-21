@@ -29,9 +29,6 @@ namespace LongRunningTasks.Infrastructure.Services
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var _channel = _channelFactory.Create();
-            _channel.ExchangeDeclare("Items", "topic", durable: false, autoDelete: false);
-
             _messageSubscriber
                 .SubscribeMessage<ItemMessages>("multiple-item-message", "EU.#", "Items", (msg, args) =>
                 {

@@ -13,8 +13,10 @@ namespace LongRunningTasks.Infrastructure.Utilities.RabbitMQ.Subscribers
         public MessageSubscriber(IChannelFactory channelFactory) => _channel = channelFactory.Create();
         IMessageSubscriber IMessageSubscriber.SubscribeMessage<TMessage>(string queue, string routingKey, string exchange, Func<TMessage, BasicDeliverEventArgs, Task> handle)
         {
+            _channel.ExchangeDeclare(exchange, "topic", durable: false, autoDelete: false);
             _channel.QueueDeclare(queue, durable: false, exclusive: false, autoDelete: false);
             _channel.QueueBind(queue, exchange, routingKey);
+            //_channel.BasicQos(1);
 
             var consumer = new EventingBasicConsumer(_channel);
 

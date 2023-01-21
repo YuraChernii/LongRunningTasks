@@ -50,6 +50,8 @@ namespace LongRunningTasks.Infrastructure
 
         public static IServiceCollection AddBackgroundServices(this IServiceCollection services, IConfiguration config)
         {
+            services.AddHostedService<UkrNetParsingBackgroundService>();
+
             services.AddHostedService<TimedHostedService>();
 
             services.AddHostedService<QueuedHostedService>();
