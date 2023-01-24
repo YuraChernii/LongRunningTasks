@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace LongRunningTasks.Infrastructure.Utilities
 {
-    public class BackgroundTaskQueue : IBackgroundTaskQueue
+    public class BackgroundTaskQueue<T> : IBackgroundTaskQueue<T>
     {
-        private readonly Channel<Func<CancellationToken, Task>> _queue;
+        private readonly Channel<T> _queue;
 
         public BackgroundTaskQueue(int capacity)
         {
@@ -18,21 +18,20 @@ namespace LongRunningTasks.Infrastructure.Utilities
             {
                 FullMode = BoundedChannelFullMode.Wait
             };
-            _queue = Channel.CreateBounded<Func<CancellationToken, Task>>(options);
+            _queue = Channel.CreateBounded<T>(options);
         }
 
-        public async Task QueueBackgroundWorkItemAsync(
-            Func<CancellationToken, Task> workItem)
+        public async Task QueueBackgroundWorkItemAsync(T item)
         {
-            if (workItem == null)
+            if (item == null)
             {
-                throw new ArgumentNullException(nameof(workItem));
+                throw new ArgumentNullException(nameof(item));
             }
 
-            await _queue.Writer.WriteAsync(workItem);
+            await _queue.Writer.WriteAsync(item);
         }
 
-        public async Task<IEnumerable<Func<CancellationToken, Task>>> DequeueAsync(
+        public async Task<IEnumerable<T>> DequeueAsync(
             CancellationToken cancellationToken, int amount = 1)
         {
             if (amount > 10 || amount < 1)
@@ -40,13 +39,13 @@ namespace LongRunningTasks.Infrastructure.Utilities
                 throw new Exception("Amount of dequeueing items is out of range.");
             }
 
-            var workItems = new List<Func<CancellationToken, Task>>();
+            var items = new List<T>();
 
             for (int i = 0; i < amount; i++)
             {
-                var workItem = await _queue.Reader.ReadAsync(cancellationToken);
+                var item = await _queue.Reader.ReadAsync(cancellationToken);
 
-                workItems.Add(workItem);
+                items.Add(item);
 
                 if (_queue.Reader.Count == 0)
                 {
@@ -54,7 +53,7 @@ namespace LongRunningTasks.Infrastructure.Utilities
                 }
             }
 
-            return workItems;
+            return items;
         }
 
     }

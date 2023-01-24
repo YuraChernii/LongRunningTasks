@@ -1,6 +1,7 @@
 ﻿
 using AutoMapper;
 using Hangfire;
+using LongRunningTasks.Application.DTOs;
 using LongRunningTasks.Application.Services;
 using LongRunningTasks.Application.Utilities;
 using LongRunningTasks.Application.Utilities.RabbitMQ.Connections;
@@ -35,45 +36,30 @@ namespace LongRunningTasks.Infrastructure
 
             services.AddRepositories(config);
 
-            services.AddRabbitMQMessaging(config);
-
             return services;
         }
 
         public static IServiceCollection AddConfigMapping(this IServiceCollection services, IConfiguration config)
         {
             services.Configure<EmailConfig>(config.GetSection("EmailConfig"));
-            services.Configure<PipeConfig> (config.GetSection("PipeConfig"));
+            services.Configure<PipeConfig>(config.GetSection("PipeConfig"));
 
             return services;
         }
 
         public static IServiceCollection AddBackgroundServices(this IServiceCollection services, IConfiguration config)
         {
-            services.AddHostedService<UkrNetParsingBackgroundService>();
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
-            services.AddHostedService<TimedHostedService>();
-
-            services.AddHostedService<QueuedHostedService>();
-
-            services.AddSingleton<IBackgroundTaskQueue>(ctx =>
+            services.AddSingleton<IBackgroundTaskQueue<SendEmailInQueueDTO>>(ctx =>
             {
                 if (!int.TryParse(config["Queue:Capacity"], out var queueCapacity))
                     queueCapacity = 100;
-                return new BackgroundTaskQueue(queueCapacity);
+                return new BackgroundTaskQueue<SendEmailInQueueDTO>(queueCapacity);
             });
 
-            services.AddSingleton<IPipeService, PipeService>();
-
-            services.AddHangFireServices(config);
-
-            return services;
-        }
-
-        public static IServiceCollection AddHangFireServices(this IServiceCollection services, IConfiguration config)
-        {
-            services.AddHangfire(x => x.UseSqlServerStorage(config.GetConnectionString("HangFireDB")));
-            services.AddHangfireServer();
+            services.AddHostedService<UkrNetParsingBackgroundService>();
+            services.AddHostedService<QueuedEmailsBackgroundService>();
 
             return services;
         }
@@ -85,33 +71,8 @@ namespace LongRunningTasks.Infrastructure
             return services;
         }
 
-        public static IServiceCollection AddRabbitMQMessaging(this IServiceCollection services, IConfiguration config)
-        {
-            var factory = new ConnectionFactory()
-            {
-                HostName = "localhost",
-                UserName = "user",
-                Password = "user",
-                VirtualHost = "/"
-            };
-
-            var connection = factory.CreateConnection();
-
-            services.AddSingleton(connection);
-            services.AddSingleton<ChannelAccessor>();
-            services.AddSingleton<IChannelFactory, ChannelFactory>();
-            services.AddSingleton<IMessagePublisher, MessagePublisher>();
-            services.AddSingleton<IMessageSubscriber, MessageSubscriber>();
-
-            services.AddHostedService<MessagingBackgroundService>();
-
-            return services;
-        }
-
         public static void UseInfrastructure(this IApplicationBuilder app)
         {
-            app.UseHangfireDashboard();
-
             Databases.RabbitDB.Tables.Extensions.Configure(app.ApplicationServices.GetService<IMapper>());
 
             Utilities.Mapping.Extensions.Configure(app.ApplicationServices.GetService<IMapper>());

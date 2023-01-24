@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace LongRunningTasks.Application.Services
 {
-    public interface IBackgroundTaskQueue
+    public interface IBackgroundTaskQueue<T>
     {
-        Task QueueBackgroundWorkItemAsync(Func<CancellationToken, Task> workItem);
+        Task QueueBackgroundWorkItemAsync(T item);
 
-        Task<IEnumerable<Func<CancellationToken, Task>>> DequeueAsync(
+        Task<IEnumerable<T>> DequeueAsync(
             CancellationToken cancellationToken, int amount = 1);
     }
 }
