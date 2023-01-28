@@ -21,7 +21,8 @@ namespace LongRunningTasks.Infrastructure.Services
     {
         private readonly ILogger<QueuedEmailsBackgroundService> _logger;
         private readonly ImapClient _client;
-        private static LinkedList<UniqueId> _uniqueIds = new LinkedList<UniqueId>();
+        private LinkedList<UniqueId> _uniqueIds = new LinkedList<UniqueId>();
+        private bool previousProcessingCompleted = true;
 
         public QueuedEmailsBackgroundService(IBackgroundTaskQueue<SendEmailInQueueDTO> taskQueue,
             ILogger<QueuedEmailsBackgroundService> logger)
@@ -37,12 +38,11 @@ namespace LongRunningTasks.Infrastructure.Services
         {
             try
             {
-                await _client.SignInAsync();
-
                 await ProcessQueue(stoppingToken);
             }
             catch (Exception ex)
             {
+
                 _logger.LogError(ex,
                     "Error occurred executing....");
             }
@@ -57,6 +57,8 @@ namespace LongRunningTasks.Infrastructure.Services
 
         private async Task ProcessQueue(CancellationToken stoppingToken)
         {
+            await _client.SignInAsync();
+
             var trashFolder = await _client.GetFolder(_client.PersonalNamespaces[0])
                                     .GetSubfolderAsync("Trash", stoppingToken);
 
@@ -64,28 +66,25 @@ namespace LongRunningTasks.Infrastructure.Services
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                var item =
-                    await TaskQueue.DequeueAsync(stoppingToken);
-
-                var emailUId = item.FirstOrDefault()?.UId;
-
-                if (!emailUId.HasValue)
+                if (previousProcessingCompleted)
                 {
-                    _logger.LogError(new Exception("No Uid!!!"), "Incorrect logic.");
+                    await TaskQueue.DequeueAsync(stoppingToken);
                 }
 
-                await ProcessEmail((UniqueId)emailUId, trashFolder);
+                previousProcessingCompleted = false;
+
+                await ProcessEmail(trashFolder);
             }
         }
 
-        private async Task ProcessEmail(UniqueId uId, IMailFolder folder)
+        private async Task ProcessEmail(IMailFolder folder)
         {
-
             var summaries = await folder.FetchAsync(0, -1, MessageSummaryItems.UniqueId);
 
             var allCurrentUniqueIds = summaries.Select(_ => _.UniqueId).ToList();
 
-
+            // Get list of deleted emails.
+            // Find last index of newest common (between cached and server data) message.
             var deletedEmails = new List<UniqueId>();
             var startingIndex = 0;
             foreach (var uniqueId in _uniqueIds)
@@ -101,6 +100,7 @@ namespace LongRunningTasks.Infrastructure.Services
                 }
             }
 
+            // Get all newly arrived emails.
             var newEmails = new LinkedList<UniqueId>();
             for (int i = startingIndex; i < allCurrentUniqueIds.Count; i++)
             {
@@ -122,6 +122,7 @@ namespace LongRunningTasks.Infrastructure.Services
             }
 
             var bot = new TelegramBotClient("5813736223:AAGuIRqDOSgVYMD_CJ62hJLjNrgmpZcpdMY");
+
             foreach (var email in newEmails)
             {
                 var message = await folder.GetMessageAsync(email);
@@ -129,16 +130,11 @@ namespace LongRunningTasks.Infrastructure.Services
                 var address = message.From.Mailboxes.FirstOrDefault()?.Address ?? "";
                 if (message.From.Mailboxes.Any(_ => _.Address.Contains("e-noreply@land.gov.ua")) && !text.Contains("опрацьована"))
                 {
-                    var s = await bot.SendTextMessageAsync("@derefeefef", ".");
-
+                    var s = await bot.SendTextMessageAsync("@derefeefef", text);
                 }
             }
 
-
-
-
-
-            await bot.CloseAsync();
+            previousProcessingCompleted = true;
         }
 
         public override async Task StopAsync(CancellationToken stoppingToken)
