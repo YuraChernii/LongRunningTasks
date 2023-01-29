@@ -1,5 +1,6 @@
 ﻿using LongRunningTasks.Application.DTOs;
 using LongRunningTasks.Application.Services;
+using LongRunningTasks.Infrastructure.Databases.RabbitDB.Migrations;
 using LongRunningTasks.Infrastructure.Utilities;
 using MailKit;
 using MailKit.Net.Imap;
@@ -13,6 +14,7 @@ using System.Net.Mail;
 using System.Text;
 using System.Threading.Tasks;
 using Telegram.Bot;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace LongRunningTasks.Infrastructure.Services
 {
@@ -21,7 +23,7 @@ namespace LongRunningTasks.Infrastructure.Services
     {
         private readonly ILogger<QueuedEmailsBackgroundService> _logger;
         private readonly ImapClient _client;
-        private LinkedList<UniqueId> _uniqueIds = new LinkedList<UniqueId>();
+        private LinkedList<Item> _uniqueIds = new LinkedList<Item>();
         private bool previousProcessingCompleted = true;
 
         public QueuedEmailsBackgroundService(IBackgroundTaskQueue<SendEmailInQueueDTO> taskQueue,
@@ -85,56 +87,97 @@ namespace LongRunningTasks.Infrastructure.Services
 
             // Get list of deleted emails.
             // Find last index of newest common (between cached and server data) message.
-            var deletedEmails = new List<UniqueId>();
+            var deletedEmails = new List<Item>();
             var startingIndex = 0;
+            bool stopCount = false;
             foreach (var uniqueId in _uniqueIds)
             {
-                var tempIndex = allCurrentUniqueIds.FindLastIndex(id => id == uniqueId);
+                var tempIndex = allCurrentUniqueIds.FindLastIndex(id => id == uniqueId.Id);
                 if (tempIndex == -1)
                 {
                     deletedEmails.Add(uniqueId);
                 }
                 else
                 {
-                    startingIndex = tempIndex;
+                    if (!stopCount)
+                        startingIndex = tempIndex;
+
+                    if (!uniqueId.Processed)
+                        stopCount = true;
                 }
             }
 
             // Get all newly arrived emails.
-            var newEmails = new LinkedList<UniqueId>();
-            for (int i = startingIndex; i < allCurrentUniqueIds.Count; i++)
+            for (int i = startingIndex < 0 ? 0 : startingIndex; i < allCurrentUniqueIds.Count; i++)
             {
-                var exists = _uniqueIds.Contains(allCurrentUniqueIds[i]);
+                var exists = _uniqueIds.Contains(new Item() { Id = allCurrentUniqueIds[i], Processed = true });
 
                 if (!exists)
                 {
-                    _uniqueIds.AddLast(allCurrentUniqueIds[i]);
-                    newEmails.AddLast(allCurrentUniqueIds[i]);
+                    if (!_uniqueIds.Contains(new Item() { Id = allCurrentUniqueIds[i], Processed = false }))
+                        _uniqueIds.AddLast(new Item() { Id = allCurrentUniqueIds[i], Processed = false });
+
                     if (_uniqueIds.Count > 200)
                     {
                         _uniqueIds.RemoveFirst();
-                    }
-                    if (newEmails.Count > 50)
-                    {
-                        newEmails.RemoveFirst();
                     }
                 }
             }
 
             var bot = new TelegramBotClient("5813736223:AAGuIRqDOSgVYMD_CJ62hJLjNrgmpZcpdMY");
 
-            foreach (var email in newEmails)
+            foreach (var emailId in _uniqueIds.Where(x => x.Processed == false).Select(x => x.Id))
             {
-                var message = await folder.GetMessageAsync(email);
-                var text = message.TextBody.ToString();
+                var message = await folder.GetMessageAsync(emailId);
+                var text = message.TextBody?.ToString();
                 var address = message.From.Mailboxes.FirstOrDefault()?.Address ?? "";
-                if (message.From.Mailboxes.Any(_ => _.Address.Contains("e-noreply@land.gov.ua")) && !text.Contains("опрацьована"))
+
+                var elem = _uniqueIds.Find(new Item() { Id = emailId, Processed = false })?.Value;
+
+                if (message.From.Mailboxes.Any(_ => _.Address.Contains("e-noreply@land.gov.ua")) &&
+                                                    text != null &&
+                                                    text.ToLower().Contains("щодо державної реєстрації земельної ділянки сформована")
+                                              )
                 {
-                    var s = await bot.SendTextMessageAsync("@derefeefef", text);
+                    int index = text.IndexOf("\r\n") - 5;
+                    var textToSend = text;
+                    if (index >= 0)
+                    {
+                        textToSend = text.Substring(0, index);
+                        textToSend = textToSend.Replace("Вітаємо, шановний(а) ", "");
+                    }
+                    var s = await bot.SendTextMessageAsync("@derefeefef", textToSend);
+
+                    SetMessageText(emailId, textToSend);
                 }
+
+                if (elem != null)
+                    elem.Processed = true;
             }
 
+            foreach (var item in deletedEmails)
+            {
+                if (item.Text != null)
+                {
+
+                    var text = "Someone has deleted this message: " + item.Text;
+                    await bot.SendTextMessageAsync("@derefeefef", text);
+                }
+
+            }
+
+            deletedEmails = new List<Item>();
+
             previousProcessingCompleted = true;
+        }
+
+        private void SetMessageText(UniqueId id, string text)
+        {
+            var item = _uniqueIds.FirstOrDefault(x => x.Id == id);
+            if (item != null)
+            {
+                item.Text = text;
+            }
         }
 
         public override async Task StopAsync(CancellationToken stoppingToken)
@@ -142,6 +185,19 @@ namespace LongRunningTasks.Infrastructure.Services
             _logger.LogInformation("Queued Hosted Service is stopping.");
 
             await base.StopAsync(stoppingToken);
+        }
+    }
+
+    class Item : IEquatable<Item>
+    {
+        public UniqueId Id { get; set; }
+        public bool Processed { get; set; }
+
+        public string Text { get; set; }
+
+        public bool Equals(Item? item)
+        {
+            return this.Processed == item?.Processed && this.Id == item?.Id;
         }
     }
 }
