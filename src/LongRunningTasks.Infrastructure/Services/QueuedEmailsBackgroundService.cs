@@ -160,7 +160,7 @@ namespace LongRunningTasks.Infrastructure.Services
                 if (item.Text != null)
                 {
 
-                    var text = "Someone has deleted this message: " + item.Text;
+                    var text = "Було видалено: " + item.Text;
                     await bot.SendTextMessageAsync("@derefeefef", text);
                 }
 
