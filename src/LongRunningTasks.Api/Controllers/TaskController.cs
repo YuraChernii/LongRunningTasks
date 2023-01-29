@@ -29,7 +29,7 @@ namespace LongRunningTasks.Api.Controllers
         }
 
         [HttpGet("version")]
-        public async Task<IActionResult> GetVesion(TestINotification testINotification)
+        public async Task<IActionResult> GetVesion()
         {
             return Ok("v1");
         }
