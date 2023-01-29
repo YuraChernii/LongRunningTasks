@@ -28,5 +28,10 @@ namespace LongRunningTasks.Api.Controllers
             return Ok();
         }
 
+        [HttpGet("version")]
+        public async Task<IActionResult> GetVesion(TestINotification testINotification)
+        {
+            return Ok("v1");
+        }
     }
 }
