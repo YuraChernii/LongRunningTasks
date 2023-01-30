@@ -156,9 +156,9 @@ namespace LongRunningTasks.Infrastructure.Services
                     var text = "Було видалено: " + item.Text;
                     await bot.SendTextMessageAsync("@derefeefef", text);
 
-                    item.Text = null;
                 }
 
+                _uniqueIds.Remove(item);
             }
 
             previousProcessingCompleted = true;
