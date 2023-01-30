@@ -130,7 +130,7 @@ namespace LongRunningTasks.Infrastructure.Services
                                                     text.ToLower().Contains("щодо державної реєстрації земельної ділянки сформована")
                                               )
                 {
-                    int index = text.IndexOf("\\r\\n") - 5;
+                    int index = text.IndexOf("\\r\\n") - 1;
                     var textToSend = text;
                     _logger.LogInformation("text: "+ text);
                     if (index >= 0)
