@@ -31,7 +31,7 @@ namespace LongRunningTasks.Api.Controllers
         [HttpGet("version")]
         public async Task<IActionResult> GetVesion()
         {
-            return Ok("v2");
+            return Ok("v3");
         }
     }
 }
