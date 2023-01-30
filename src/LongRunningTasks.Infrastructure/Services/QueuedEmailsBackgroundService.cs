@@ -1,20 +1,11 @@
 ﻿using LongRunningTasks.Application.DTOs;
 using LongRunningTasks.Application.Services;
-using LongRunningTasks.Infrastructure.Databases.RabbitDB.Migrations;
 using LongRunningTasks.Infrastructure.Utilities;
 using MailKit;
 using MailKit.Net.Imap;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using MimeKit;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Mail;
-using System.Text;
-using System.Threading.Tasks;
 using Telegram.Bot;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace LongRunningTasks.Infrastructure.Services
 {
@@ -141,11 +132,13 @@ namespace LongRunningTasks.Infrastructure.Services
                 {
                     int index = text.IndexOf("\r\n") - 5;
                     var textToSend = text;
+                    _logger.LogInformation("text: "+ text);
                     if (index >= 0)
                     {
                         textToSend = text.Substring(0, index);
                         textToSend = textToSend.Replace("Вітаємо, шановний(а) ", "");
                     }
+                    _logger.LogInformation("textToSend: " + textToSend);
                     var s = await bot.SendTextMessageAsync("@derefeefef", textToSend);
 
                     SetMessageText(emailId, textToSend);
@@ -162,11 +155,11 @@ namespace LongRunningTasks.Infrastructure.Services
 
                     var text = "Було видалено: " + item.Text;
                     await bot.SendTextMessageAsync("@derefeefef", text);
+
+                    item.Text = null;
                 }
 
             }
-
-            deletedEmails = new List<Item>();
 
             previousProcessingCompleted = true;
         }
