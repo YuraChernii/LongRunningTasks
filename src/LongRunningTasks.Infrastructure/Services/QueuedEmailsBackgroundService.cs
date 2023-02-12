@@ -78,7 +78,6 @@ namespace LongRunningTasks.Infrastructure.Services
             string databaseText = System.IO.File.ReadAllText(fileName);
             if (!string.IsNullOrEmpty(databaseText))
             {
-                var test = JsonSerializer.Deserialize<LinkedList<Item>>(databaseText);
                 _uniqueIds = JsonSerializer.Deserialize<LinkedList<Item>>(databaseText) ?? _uniqueIds;
             }
 
