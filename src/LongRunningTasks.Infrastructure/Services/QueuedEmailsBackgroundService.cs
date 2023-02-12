@@ -5,7 +5,9 @@ using MailKit;
 using MailKit.Net.Imap;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 using Telegram.Bot;
+using TL;
 
 namespace LongRunningTasks.Infrastructure.Services
 {
@@ -16,6 +18,7 @@ namespace LongRunningTasks.Infrastructure.Services
         private readonly ImapClient _client;
         private LinkedList<Item> _uniqueIds = new LinkedList<Item>();
         private bool previousProcessingCompleted = true;
+        string fileName = "WeatherForecast.json";
 
         public QueuedEmailsBackgroundService(IBackgroundTaskQueue<SendEmailInQueueDTO> taskQueue,
             ILogger<QueuedEmailsBackgroundService> logger)
@@ -72,6 +75,13 @@ namespace LongRunningTasks.Infrastructure.Services
 
         private async Task ProcessEmail(IMailFolder folder)
         {
+            string databaseText = System.IO.File.ReadAllText(fileName);
+            if (!string.IsNullOrEmpty(databaseText))
+            {
+                var test = JsonSerializer.Deserialize<LinkedList<Item>>(databaseText);
+                _uniqueIds = JsonSerializer.Deserialize<LinkedList<Item>>(databaseText) ?? _uniqueIds;
+            }
+
             var summaries = await folder.FetchAsync(0, -1, MessageSummaryItems.UniqueId);
 
             var allCurrentUniqueIds = summaries.Select(_ => _.UniqueId).ToList();
@@ -83,7 +93,7 @@ namespace LongRunningTasks.Infrastructure.Services
             bool stopCount = false;
             foreach (var uniqueId in _uniqueIds)
             {
-                var tempIndex = allCurrentUniqueIds.FindLastIndex(id => id == uniqueId.Id);
+                var tempIndex = allCurrentUniqueIds.FindLastIndex(id => id.Id == uniqueId.Id);
                 if (tempIndex == -1)
                 {
                     deletedEmails.Add(uniqueId);
@@ -101,12 +111,12 @@ namespace LongRunningTasks.Infrastructure.Services
             // Get all newly arrived emails.
             for (int i = startingIndex < 0 ? 0 : startingIndex; i < allCurrentUniqueIds.Count; i++)
             {
-                var exists = _uniqueIds.Contains(new Item() { Id = allCurrentUniqueIds[i], Processed = true });
+                var exists = _uniqueIds.Contains(new Item() { Id = allCurrentUniqueIds[i].Id, Processed = true });
 
                 if (!exists)
                 {
-                    if (!_uniqueIds.Contains(new Item() { Id = allCurrentUniqueIds[i], Processed = false }))
-                        _uniqueIds.AddLast(new Item() { Id = allCurrentUniqueIds[i], Processed = false });
+                    if (!_uniqueIds.Contains(new Item() { Id = allCurrentUniqueIds[i].Id, Processed = false }))
+                        _uniqueIds.AddLast(new Item() { Id = allCurrentUniqueIds[i].Id, Processed = false });
 
                     if (_uniqueIds.Count > 200)
                     {
@@ -119,7 +129,7 @@ namespace LongRunningTasks.Infrastructure.Services
 
             foreach (var emailId in _uniqueIds.Where(x => x.Processed == false).Select(x => x.Id))
             {
-                var message = await folder.GetMessageAsync(emailId);
+                var message = await folder.GetMessageAsync(new UniqueId(emailId));
                 var text = message.TextBody?.ToString();
                 var address = message.From.Mailboxes.FirstOrDefault()?.Address ?? "";
 
@@ -140,7 +150,7 @@ namespace LongRunningTasks.Infrastructure.Services
                     _logger.LogInformation("textToSend: " + textToSend);
                     var s = await bot.SendTextMessageAsync("@derefeefef", textToSend);
 
-                    SetMessageText(emailId, textToSend);
+                    SetMessageText(new UniqueId(emailId), textToSend);
                 }
 
                 if (elem != null)
@@ -161,11 +171,16 @@ namespace LongRunningTasks.Infrastructure.Services
             }
 
             previousProcessingCompleted = true;
+
+            System.IO.File.WriteAllText(fileName, "");
+            using FileStream createStream = File.OpenWrite(fileName);
+            await JsonSerializer.SerializeAsync(createStream, _uniqueIds);
+            await createStream.DisposeAsync();
         }
 
         private void SetMessageText(UniqueId id, string text)
         {
-            var item = _uniqueIds.FirstOrDefault(x => x.Id == id);
+            var item = _uniqueIds.FirstOrDefault(x => x.Id == id.Id);
             if (item != null)
             {
                 item.Text = text;
@@ -182,7 +197,7 @@ namespace LongRunningTasks.Infrastructure.Services
 
     class Item : IEquatable<Item>
     {
-        public UniqueId Id { get; set; }
+        public uint Id { get; set; }
         public bool Processed { get; set; }
 
         public string Text { get; set; }
