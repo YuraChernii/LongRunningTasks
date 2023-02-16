@@ -5,6 +5,7 @@ using MailKit;
 using MailKit.Net.Imap;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.IO;
 using System.Text.Json;
 using Telegram.Bot;
 using TL;
@@ -18,7 +19,8 @@ namespace LongRunningTasks.Infrastructure.Services
         private readonly ImapClient _client;
         private LinkedList<Item> _uniqueIds = new LinkedList<Item>();
         private bool previousProcessingCompleted = true;
-        string fileName = "WeatherForecast.json";
+        string fileName = "rokossokal-a0AVvZTlbyTVsr7jxMzTMlbayJTUHzFVa99359t-qTbqXGrSOREtFD-ddfxxZzuBLUIb";
+        string fileMime = "application/json";
 
         public QueuedEmailsBackgroundService(IBackgroundTaskQueue<SendEmailInQueueDTO> taskQueue,
             ILogger<QueuedEmailsBackgroundService> logger)
@@ -75,10 +77,16 @@ namespace LongRunningTasks.Infrastructure.Services
 
         private async Task ProcessEmail(IMailFolder folder)
         {
-            string databaseText = System.IO.File.ReadAllText(fileName);
-            if (!string.IsNullOrEmpty(databaseText))
+            var driveService = DriveServiceFactory.GetService();
+
+            var file = await driveService.FindFileByNameAsync(fileName);
+            if (file != null)
             {
-                _uniqueIds = JsonSerializer.Deserialize<LinkedList<Item>>(databaseText) ?? _uniqueIds;
+                var stream = await driveService.GetFileStreamAsync(file);
+                stream.Position = 0;
+                var reader = new StreamReader(stream);
+                var allText = reader.ReadToEnd();
+                _uniqueIds = JsonSerializer.Deserialize<LinkedList<Item>>(allText) ?? _uniqueIds;
             }
 
             var summaries = await folder.FetchAsync(0, -1, MessageSummaryItems.UniqueId);
@@ -161,7 +169,7 @@ namespace LongRunningTasks.Infrastructure.Services
                 if (item.Text != null)
                 {
 
-                    var text = "Було видалено: " + item.Text;
+                    var text = "Було видалено:" + item.Text + "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
                     await bot.SendTextMessageAsync("@derefeefef", text);
 
                 }
@@ -171,10 +179,16 @@ namespace LongRunningTasks.Infrastructure.Services
 
             previousProcessingCompleted = true;
 
-            System.IO.File.WriteAllText(fileName, "");
-            using FileStream createStream = File.OpenWrite(fileName);
-            await JsonSerializer.SerializeAsync(createStream, _uniqueIds);
-            await createStream.DisposeAsync();
+
+            using Stream memoryStream = new MemoryStream();
+            JsonSerializer.Serialize(memoryStream, _uniqueIds);
+
+            if (file == null)
+                await driveService.CreateFileAsync(memoryStream, fileName, fileMime);
+            else
+                await driveService.UpdateFileAsync(file, memoryStream, fileName, fileMime);
+
+            memoryStream.Dispose();
         }
 
         private void SetMessageText(UniqueId id, string text)
