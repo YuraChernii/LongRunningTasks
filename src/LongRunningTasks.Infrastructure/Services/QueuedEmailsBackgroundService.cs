@@ -86,116 +86,156 @@ namespace LongRunningTasks.Infrastructure.Services
                 stream.Position = 0;
                 var reader = new StreamReader(stream);
                 var allText = reader.ReadToEnd();
-                _uniqueIds = JsonSerializer.Deserialize<LinkedList<Item>>(allText) ?? _uniqueIds;
+                _uniqueIds = JsonSerializer.Deserialize<LinkedList<Item>>(allText);
             }
 
-            var summaries = await folder.FetchAsync(0, -1, MessageSummaryItems.UniqueId);
-
-            var allCurrentUniqueIds = summaries.Select(_ => _.UniqueId).ToList();
-
-            // Get list of deleted emails.
-            // Find last index of newest common (between cached and server data) message.
-            var deletedEmails = new List<Item>();
-            var startingIndex = 0;
-            bool stopCount = false;
-            foreach (var uniqueId in _uniqueIds)
+            var exceptionOccurred = false;
+            try
             {
-                var tempIndex = allCurrentUniqueIds.FindLastIndex(id => id.Id == uniqueId.Id);
-                if (tempIndex == -1)
+                var summaries = await folder.FetchAsync(0, -1, MessageSummaryItems.UniqueId);
+
+                var allCurrentUniqueIds = summaries.Select(_ => _.UniqueId).ToList();
+
+                // Get list of deleted emails.
+                // Find last index of newest common (between cached and server data) message.
+                var deletedEmails = new List<Item>();
+                var startingIndex = 0;
+                bool stopCount = false;
+                foreach (var uniqueId in _uniqueIds)
                 {
-                    deletedEmails.Add(uniqueId);
-                }
-                else
-                {
-                    if (!stopCount)
-                        startingIndex = tempIndex;
-
-                    if (!uniqueId.Processed)
-                        stopCount = true;
-                }
-            }
-
-            // Get all newly arrived emails.
-            for (int i = startingIndex < 0 ? 0 : startingIndex; i < allCurrentUniqueIds.Count; i++)
-            {
-                var exists = _uniqueIds.Contains(new Item() { Id = allCurrentUniqueIds[i].Id, Processed = true });
-
-                if (!exists)
-                {
-                    if (!_uniqueIds.Contains(new Item() { Id = allCurrentUniqueIds[i].Id, Processed = false }))
-                        _uniqueIds.AddLast(new Item() { Id = allCurrentUniqueIds[i].Id, Processed = false });
-
-                    if (_uniqueIds.Count > 200)
+                    var tempIndex = allCurrentUniqueIds.FindLastIndex(id => id.Id == uniqueId.Id);
+                    if (tempIndex == -1)
                     {
-                        _uniqueIds.RemoveFirst();
+                        deletedEmails.Add(uniqueId);
+                        uniqueId.Processed = true;
+                    }
+                    else
+                    {
+                        if (!stopCount)
+                            startingIndex = tempIndex;
+
+                        if (!uniqueId.Processed)
+                            stopCount = true;
                     }
                 }
-            }
 
-            var bot = new TelegramBotClient("5813736223:AAGuIRqDOSgVYMD_CJ62hJLjNrgmpZcpdMY");
-
-            foreach (var emailId in _uniqueIds.Where(x => x.Processed == false).Select(x => x.Id))
-            {
-                var message = await folder.GetMessageAsync(new UniqueId(emailId));
-                var text = message.TextBody?.ToString();
-                var address = message.From.Mailboxes.FirstOrDefault()?.Address ?? "";
-
-                var elem = _uniqueIds.Find(new Item() { Id = emailId, Processed = false })?.Value;
-
-                if (message.From.Mailboxes.Any(_ => _.Address.Contains("e-noreply@land.gov.ua")) &&
-                                                    text != null &&
-                                                    text.ToLower().Contains("щодо державної реєстрації земельної ділянки сформована")
-                                              )
+                // Get all newly arrived emails.
+                for (int i = startingIndex < 0 ? 0 : startingIndex; i < allCurrentUniqueIds.Count; i++)
                 {
-                    int index = text.IndexOf("\\r\\n") - 1;
-                    var textToSend = text;
-                    if (index >= 0)
+                    var exists = _uniqueIds.Contains(new Item() { Id = allCurrentUniqueIds[i].Id, Processed = true });
+
+                    if (!exists)
                     {
-                        textToSend = text.Substring(0, index);
-                        textToSend = textToSend.Replace("Вітаємо, шановний(а) ", "");
+                        if (!_uniqueIds.Contains(new Item() { Id = allCurrentUniqueIds[i].Id, Processed = false }))
+                            _uniqueIds.AddLast(new Item() { Id = allCurrentUniqueIds[i].Id, Processed = false });
+
+                        if (_uniqueIds.Count > 200)
+                        {
+                            _uniqueIds.RemoveFirst();
+                        }
                     }
-                    _logger.LogInformation("textToSend: " + textToSend);
-                    var s = await bot.SendTextMessageAsync("@derefeefef", textToSend);
-
-                    SetMessageText(new UniqueId(emailId), textToSend);
                 }
 
-                if (elem != null)
-                    elem.Processed = true;
-            }
+                var bot = new TelegramBotClient("5813736223:AAGuIRqDOSgVYMD_CJ62hJLjNrgmpZcpdMY");
+                var channelId_1 = "-1001836032500";
+                var channelId_2 = "-1001871788453";
 
-            foreach (var item in deletedEmails)
-            {
-                if (item.Text != null)
+                foreach (var emailId in _uniqueIds.Where(x => x.Processed == false).Select(x => x.Id))
                 {
+                    var message = await folder.GetMessageAsync(new UniqueId(emailId));
+                    var text = message.TextBody?.ToString();
+                    var address = message.From.Mailboxes.FirstOrDefault()?.Address ?? "";
 
-                    var text = "Було видалено:" + item.Text + "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
-                    await bot.SendTextMessageAsync("@derefeefef", text);
+                    var elem = _uniqueIds.Find(new Item() { Id = emailId, Processed = false })?.Value;
 
+                    if (message.From.Mailboxes.Any(_ => _.Address.Contains("e-noreply@land.gov.ua")) &&
+                                                        text != null &&
+                                                        text.ToLower().Contains("щодо державної реєстрації земельної ділянки сформована")
+                                                  )
+                    {
+                        int index = text.IndexOf("\\r\\n") - 1;
+                        var textToSend = text;
+                        if (index >= 0)
+                        {
+                            textToSend = text.Substring(0, index);
+                            textToSend = textToSend.Replace("Вітаємо, шановний(а) ", "");
+                        }
+                        _logger.LogInformation("textToSend: " + textToSend);
+                        await bot.SendTextMessageAsync(channelId_1, textToSend);
+
+                        SetMessageText(new UniqueId(emailId), textToSend, DocumentType.sfornovana);
+                    }
+                    else if (message.From.Mailboxes.Any(_ => _.Address.Contains("e-noreply@land.gov.ua")) &&
+                                                        text != null &&
+                                                        text.ToLower().Contains("щодо державної реєстрації земельної ділянки опрацьовано")
+                                                  )
+                    {
+                        int index = text.IndexOf("\\r\\n") - 1;
+                        var textToSend = text;
+                        if (index >= 0)
+                        {
+                            textToSend = text.Substring(0, index);
+                            textToSend = textToSend.Replace("Вітаємо, шановний(а) ", "");
+                        }
+                        _logger.LogInformation("textToSend: " + textToSend);
+                        await bot.SendTextMessageAsync(channelId_2, textToSend);
+
+                        SetMessageText(new UniqueId(emailId), textToSend, DocumentType.opracovana);
+                    }
+
+                    if (elem != null)
+                        elem.Processed = true;
                 }
 
-                _uniqueIds.Remove(item);
+                foreach (var item in deletedEmails)
+                {
+                    if (item.Text != null)
+                    {
+                        var text = "Було видалено:" + item.Text + "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+                        if (item.DocType == DocumentType.opracovana)
+                            await bot.SendTextMessageAsync(channelId_1, text);
+                        else
+                            await bot.SendTextMessageAsync(channelId_2, text);
+                    }
+
+                    _uniqueIds.Remove(item);
+                }
+
+                previousProcessingCompleted = true;
+            }
+            catch
+            {
+                exceptionOccurred = true;
+            }
+            finally
+            {
+                if (_uniqueIds.Count > 1)
+                {
+                    using Stream memoryStream = new MemoryStream();
+                    JsonSerializer.Serialize(memoryStream, _uniqueIds);
+
+                    if (file == null)
+                        await driveService.CreateFileAsync(memoryStream, fileName, fileMime);
+                    else
+                        await driveService.UpdateFileAsync(file, memoryStream, fileName, fileMime);
+
+                    memoryStream.Dispose();
+                }
+                if (exceptionOccurred)
+                {
+                    exceptionOccurred = false;
+                    throw new Exception();
+                }
             }
 
-            previousProcessingCompleted = true;
-
-
-            using Stream memoryStream = new MemoryStream();
-            JsonSerializer.Serialize(memoryStream, _uniqueIds);
-
-            if (file == null)
-                await driveService.CreateFileAsync(memoryStream, fileName, fileMime);
-            else
-                await driveService.UpdateFileAsync(file, memoryStream, fileName, fileMime);
-
-            memoryStream.Dispose();
         }
 
-        private void SetMessageText(UniqueId id, string text)
+        private void SetMessageText(UniqueId id, string text, DocumentType docType)
         {
             var item = _uniqueIds.FirstOrDefault(x => x.Id == id.Id);
             if (item != null)
             {
+                item.DocType = docType;
                 item.Text = text;
             }
         }
@@ -212,12 +252,16 @@ namespace LongRunningTasks.Infrastructure.Services
     {
         public uint Id { get; set; }
         public bool Processed { get; set; }
-
         public string Text { get; set; }
-
+        public DocumentType DocType { get; set; }
         public bool Equals(Item? item)
         {
             return this.Processed == item?.Processed && this.Id == item?.Id;
         }
+    }
+    enum DocumentType
+    {
+        sfornovana = 0,
+        opracovana = 1
     }
 }
