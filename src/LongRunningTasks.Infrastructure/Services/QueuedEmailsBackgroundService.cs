@@ -170,12 +170,12 @@ namespace LongRunningTasks.Infrastructure.Services
                                                         text.ToLower().Contains("щодо державної реєстрації земельної ділянки опрацьовано")
                                                   )
                     {
-                        int index = text.IndexOf("\\r\\n") - 1;
+                        int index = text.IndexOf(", заяву ") - 1;
                         var textToSend = text;
                         if (index >= 0)
                         {
                             textToSend = text.Substring(0, index);
-                            textToSend = textToSend.Replace("Вітаємо, шановний(а) ", "");
+                            textToSend = textToSend.Replace("Шановний(а) ", "");
                         }
                         _logger.LogInformation("textToSend: " + textToSend);
                         await bot.SendTextMessageAsync(channelId_2, textToSend);
@@ -192,7 +192,7 @@ namespace LongRunningTasks.Infrastructure.Services
                     if (item.Text != null)
                     {
                         var text = "Було видалено:" + item.Text + "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
-                        if (item.DocType == DocumentType.opracovana)
+                        if (item.DocType == DocumentType.sfornovana)
                             await bot.SendTextMessageAsync(channelId_1, text);
                         else
                             await bot.SendTextMessageAsync(channelId_2, text);
