@@ -170,7 +170,7 @@ namespace LongRunningTasks.Infrastructure.Services
                                                         text.ToLower().Contains("щодо державної реєстрації земельної ділянки опрацьовано")
                                                   )
                     {
-                        int index = text.IndexOf(", заяву ") - 1;
+                        int index = text.IndexOf(", заяву ");
                         var textToSend = text;
                         if (index >= 0)
                         {
