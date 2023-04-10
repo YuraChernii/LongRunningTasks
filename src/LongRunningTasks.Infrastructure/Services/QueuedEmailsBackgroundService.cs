@@ -185,7 +185,7 @@ namespace LongRunningTasks.Infrastructure.Services
                     }
                     else if (message.From.Mailboxes.Any(_ => _.Address.Contains("e-noreply@land.gov.ua")) &&
                                                         text != null &&
-                                                        text.ToLower().Contains("Заява/Повідомлення на Про внесення відомостей (змін до них) до Державного земельного кадастру про земельну ділянку з кадастровим номером")
+                                                        text.ToLower().Contains("Про внесення відомостей (змін до них) до Державного земельного кадастру за кадастровим номером")
                                                   )
                     {
                         int index = text.IndexOf("\\r\\n") - 1;
