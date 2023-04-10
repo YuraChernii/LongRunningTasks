@@ -139,6 +139,7 @@ namespace LongRunningTasks.Infrastructure.Services
                 var bot = new TelegramBotClient("5813736223:AAGuIRqDOSgVYMD_CJ62hJLjNrgmpZcpdMY");
                 var channelId_1 = "-1001836032500";
                 var channelId_2 = "-1001871788453";
+                var channelId_3 = "-1001659289980";
 
                 foreach (var emailId in _uniqueIds.Where(x => x.Processed == false).Select(x => x.Id))
                 {
@@ -182,6 +183,23 @@ namespace LongRunningTasks.Infrastructure.Services
 
                         SetMessageText(new UniqueId(emailId), textToSend, DocumentType.opracovana);
                     }
+                    else if (message.From.Mailboxes.Any(_ => _.Address.Contains("e-noreply@land.gov.ua")) &&
+                                                        text != null &&
+                                                        text.ToLower().Contains("Заява/Повідомлення на Про внесення відомостей (змін до них) до Державного земельного кадастру про земельну ділянку з кадастровим номером")
+                                                  )
+                    {
+                        int index = text.IndexOf("\\r\\n") - 1;
+                        var textToSend = text;
+                        if (index >= 0)
+                        {
+                            textToSend = text.Substring(0, index);
+                            textToSend = textToSend.Replace("Вітаємо, шановний(а) ", "");
+                        }
+                        _logger.LogInformation("textToSend: " + textToSend);
+                        await bot.SendTextMessageAsync(channelId_3, textToSend);
+
+                        SetMessageText(new UniqueId(emailId), textToSend, DocumentType.vnesennyzmin);
+                    }
 
                     if (elem != null)
                         elem.Processed = true;
@@ -191,11 +209,13 @@ namespace LongRunningTasks.Infrastructure.Services
                 {
                     if (item.Text != null)
                     {
-                        var text = "Було видалено:" + item.Text + "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+                        var text = "Було видалено: " + item.Text.TrimStart() + "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
                         if (item.DocType == DocumentType.sfornovana)
                             await bot.SendTextMessageAsync(channelId_1, text);
-                        else
+                        else if (item.DocType == DocumentType.opracovana)
                             await bot.SendTextMessageAsync(channelId_2, text);
+                        else
+                            await bot.SendTextMessageAsync(channelId_3, text);
                     }
 
                     _uniqueIds.Remove(item);
@@ -262,6 +282,7 @@ namespace LongRunningTasks.Infrastructure.Services
     enum DocumentType
     {
         sfornovana = 0,
-        opracovana = 1
+        opracovana = 1,
+        vnesennyzmin = 2
     }
 }
