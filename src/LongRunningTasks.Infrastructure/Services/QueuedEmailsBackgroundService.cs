@@ -192,7 +192,7 @@ namespace LongRunningTasks.Infrastructure.Services
                     if (item.Text != null)
                     {
                         var text = "Було видалено:" + item.Text + "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
-                        if (item.DocType == DocumentType.opracovana)
+                        if (item.DocType == DocumentType.sfornovana)
                             await bot.SendTextMessageAsync(channelId_1, text);
                         else
                             await bot.SendTextMessageAsync(channelId_2, text);
