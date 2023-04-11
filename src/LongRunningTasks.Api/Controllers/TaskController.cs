@@ -25,45 +25,12 @@ namespace LongRunningTasks.Api.Controllers
             _mediator = mediator;
         }
 
-        [HttpPost("background-service")]
-        public async Task<IActionResult> TestBackgroundService(TestBackgroundService setEmailReminder)
+        [HttpPost("version")]
+        public async Task<IActionResult> GetVersion(TestBackgroundService setEmailReminder)
         {
-            var result = await _mediator.Send(setEmailReminder);
-
-            return Ok(result);
+            return Ok("prod");
         }
 
-        [HttpPost("hangfire")]
-        public async Task<IActionResult> TestHangFire(TestHangFire testHangFire)
-        {
-            var result = await _mediator.Send(testHangFire);
-
-            return Ok(result);
-        }
-
-        [HttpPost("observable")]
-        public async Task<IActionResult> TestObservable(TestObservable testObservable)
-        {
-            var result = await _mediator.Send(testObservable);
-
-            return Ok(result);
-        }
-
-        [HttpPost("rabbitmq")]
-        public async Task<IActionResult> TestRabbitMQ(TestRabbitMQ testRabbitMQ)
-        {
-            var result = await _mediator.Send(testRabbitMQ);
-
-            return Ok(result);
-        }
-
-        [HttpPost("notification")]
-        public async Task<IActionResult> TestINotification(TestINotification testINotification)
-        {
-            await _mediator.Publish(testINotification);
-
-            return Ok();
-        }
-
+        
     }
 }
