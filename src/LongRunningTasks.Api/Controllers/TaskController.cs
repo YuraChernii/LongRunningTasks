@@ -25,7 +25,7 @@ namespace LongRunningTasks.Api.Controllers
         [HttpGet("version")]
         public async Task<IActionResult> GetVersion(TestBackgroundService setEmailReminder)
         {
-            return Ok("prod");
+            return Ok("prod2");
         }
 
         
