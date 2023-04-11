@@ -26,16 +26,16 @@ namespace LongRunningTasks.Infrastructure
     {
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config)
         {
-            services.AddConfigMapping(config);
+            //services.AddConfigMapping(config);
 
-            services.AddBackgroundServices(config);
+            //services.AddBackgroundServices(config);
 
-            services.AddDbContext<RabbitDBContext>(options =>
-                options.UseSqlServer(config.GetConnectionString("RabbitDB")));
+            //services.AddDbContext<RabbitDBContext>(options =>
+            //    options.UseSqlServer(config.GetConnectionString("RabbitDB")));
 
-            services.AddRepositories(config);
+            //services.AddRepositories(config);
 
-            services.AddRabbitMQMessaging(config);
+            //services.AddRabbitMQMessaging(config);
 
             return services;
         }

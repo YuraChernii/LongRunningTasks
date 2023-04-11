@@ -10,7 +10,7 @@ namespace LongRunningTasks.Application
     {
         public static void AddApplication(this IServiceCollection services, IConfiguration config)
         {
-            services.AddMediatR(Assembly.GetExecutingAssembly());
+            //services.AddMediatR(Assembly.GetExecutingAssembly());
         }
     }
 }
