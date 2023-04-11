@@ -11,8 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 //builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
-builder.Services.AddApplication(builder.Configuration);
-builder.Services.AddInfrastructure(builder.Configuration);
+//builder.Services.AddApplication(builder.Configuration);
+//builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -30,7 +30,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseInfrastructure();
+//app.UseInfrastructure();
 
 app.UseAuthorization();
 

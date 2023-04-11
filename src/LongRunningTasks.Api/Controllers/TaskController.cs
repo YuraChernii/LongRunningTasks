@@ -13,22 +13,21 @@ namespace LongRunningTasks.Api.Controllers
     [Route("[controller]")]
     public class TaskController : ControllerBase
     {
-        private readonly IMediator _mediator;
         private readonly ILogger<TaskController> _logger;
 
         public TaskController(
-            IMediator mediator,
             ILogger<TaskController> logger
             )
         {
             _logger = logger;
-            _mediator = mediator;
         }
 
-        [HttpPost("version")]
+        [HttpGet("version")]
         public async Task<IActionResult> GetVersion(TestBackgroundService setEmailReminder)
         {
-            return Ok("statging");
+            _logger.LogInformation("staging");
+
+            return Ok("staging");
         }
 
         
