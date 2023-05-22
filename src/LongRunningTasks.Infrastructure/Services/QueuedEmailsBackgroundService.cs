@@ -5,10 +5,8 @@ using MailKit;
 using MailKit.Net.Imap;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System.IO;
 using System.Text.Json;
 using Telegram.Bot;
-using TL;
 
 namespace LongRunningTasks.Infrastructure.Services
 {
@@ -140,6 +138,7 @@ namespace LongRunningTasks.Infrastructure.Services
                 var channelId_1 = "-1001836032500";
                 var channelId_2 = "-1001871788453";
                 var channelId_3 = "-1001659289980";
+                var channelId_4 = "-1001973168320";
 
                 foreach (var emailId in _uniqueIds.Where(x => x.Processed == false).Select(x => x.Id))
                 {
@@ -161,7 +160,7 @@ namespace LongRunningTasks.Infrastructure.Services
                             textToSend = text.Substring(0, index);
                             textToSend = textToSend.Replace("Вітаємо, шановний(а) ", "");
                         }
-                        _logger.LogInformation("textToSend: " + textToSend);
+                        //_logger.LogInformation("textToSend: " + textToSend);
                         await bot.SendTextMessageAsync(channelId_1, textToSend);
 
                         SetMessageText(new UniqueId(emailId), textToSend, DocumentType.sfornovana);
@@ -178,7 +177,7 @@ namespace LongRunningTasks.Infrastructure.Services
                             textToSend = text.Substring(0, index);
                             textToSend = textToSend.Replace("Шановний(а) ", "");
                         }
-                        _logger.LogInformation("textToSend: " + textToSend);
+                        //_logger.LogInformation("textToSend: " + textToSend);
                         await bot.SendTextMessageAsync(channelId_2, textToSend);
 
                         SetMessageText(new UniqueId(emailId), textToSend, DocumentType.opracovana);
@@ -195,10 +194,27 @@ namespace LongRunningTasks.Infrastructure.Services
                             textToSend = text.Substring(0, index);
                             textToSend = textToSend.Replace("Вітаємо, шановний(а) ", "");
                         }
-                        _logger.LogInformation("textToSend: " + textToSend);
+                        //_logger.LogInformation("textToSend: " + textToSend);
                         await bot.SendTextMessageAsync(channelId_3, textToSend);
 
                         SetMessageText(new UniqueId(emailId), textToSend, DocumentType.vnesennyzmin);
+                    }
+                    else if (message.From.Mailboxes.Any(_ => _.Address.Contains("e-noreply@land.gov.ua")) &&
+                                                        text != null &&
+                                                        text.ToLower().Contains("про внесення виправлених відомостей до Державного земельного кадастру")
+                                                  )
+                    {
+                        int index = text.IndexOf("\\r\\n") - 1;
+                        var textToSend = text;
+                        if (index >= 0)
+                        {
+                            textToSend = text.Substring(0, index);
+                            textToSend = textToSend.Replace("Вітаємо, шановний(а) ", "");
+                        }
+                        //_logger.LogInformation("textToSend: " + textToSend);
+                        await bot.SendTextMessageAsync(channelId_4, textToSend);
+
+                        SetMessageText(new UniqueId(emailId), textToSend, DocumentType.vnesennyzmin_paid);
                     }
 
                     if (elem != null)
@@ -214,8 +230,10 @@ namespace LongRunningTasks.Infrastructure.Services
                             await bot.SendTextMessageAsync(channelId_1, text);
                         else if (item.DocType == DocumentType.opracovana)
                             await bot.SendTextMessageAsync(channelId_2, text);
-                        else
+                        else if (item.DocType == DocumentType.vnesennyzmin)
                             await bot.SendTextMessageAsync(channelId_3, text);
+                        else
+                            await bot.SendTextMessageAsync(channelId_4, text);
                     }
 
                     _uniqueIds.Remove(item);
@@ -283,6 +301,7 @@ namespace LongRunningTasks.Infrastructure.Services
     {
         sfornovana = 0,
         opracovana = 1,
-        vnesennyzmin = 2
+        vnesennyzmin = 2,
+        vnesennyzmin_paid = 2
     }
 }
