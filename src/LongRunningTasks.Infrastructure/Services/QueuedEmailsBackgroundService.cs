@@ -303,6 +303,6 @@ namespace LongRunningTasks.Infrastructure.Services
         sfornovana = 0,
         opracovana = 1,
         vnesennyzmin = 2,
-        vnesennyzmin_paid = 2
+        vnesennyzmin_paid = 3
     }
 }
