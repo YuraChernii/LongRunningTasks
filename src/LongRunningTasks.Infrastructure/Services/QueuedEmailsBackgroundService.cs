@@ -150,7 +150,8 @@ namespace LongRunningTasks.Infrastructure.Services
 
                     if (message.From.Mailboxes.Any(_ => _.Address.Contains("e-noreply@land.gov.ua")) &&
                                                         text != null &&
-                                                        text.ToLower().Contains("щодо державної реєстрації земельної ділянки сформована")
+                                                        (text.ToLower().Contains("щодо державної реєстрації земельної ділянки сформована") ||
+                                                        text.ToLower().Contains("щодо державної реєстрації земельної ділянки створена"))
                                                   )
                     {
                         int index = text.IndexOf("\\r\\n") - 1;
@@ -201,7 +202,7 @@ namespace LongRunningTasks.Infrastructure.Services
                     }
                     else if (message.From.Mailboxes.Any(_ => _.Address.Contains("e-noreply@land.gov.ua")) &&
                                                         text != null &&
-                                                        text.ToLower().Contains("про внесення виправлених відомостей до Державного земельного кадастру")
+                                                        text.ToLower().Contains("про внесення виправлених відомостей до державного земельного кадастру")
                                                   )
                     {
                         int index = text.IndexOf("\\r\\n") - 1;
