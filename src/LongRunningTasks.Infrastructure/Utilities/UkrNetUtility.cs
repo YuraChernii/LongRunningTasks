@@ -20,7 +20,7 @@ namespace LongRunningTasks.Infrastructure.Utilities
 
         public static async Task<ImapClient> SignInAsync(this ImapClient client)
         {
-            var credentials = new NetworkCredential("rokossokal@ukr.net", "dvQMK1gjCeR6X41Q");
+            var credentials = new NetworkCredential("rokossokal@ukr.net", "m09Yn4xIAY5fJqDu");
             var uri = new Uri("imaps://imap.ukr.net");
 
             await client.ConnectAsync(uri);
