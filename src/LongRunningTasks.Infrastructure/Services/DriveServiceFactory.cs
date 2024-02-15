@@ -2,7 +2,6 @@
 using Google.Apis.Auth.OAuth2.Flows;
 using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Drive.v3;
-using Google.Apis.Services;
 using Google.Apis.Util.Store;
 using static Google.Apis.Drive.v3.DriveService;
 
@@ -12,29 +11,25 @@ namespace LongRunningTasks.Infrastructure.Services
     {
         public static DriveService GetService()
         {
-            var tokenResponse = new TokenResponse
+            TokenResponse tokenResponse = new()
             {
-                AccessToken = "ya29.a0AVvZVsr7jxMzTMlbayJTUHzFVa99359t-qTbqXGrSOREtFD-ddfxxZzuBLUIbNXN768uhSs7HotUUOGWcqspenD0F0cJw2O3vkBw-1h_XKcSqCsXnRYIRtrXFmoQmNzrL2ttlGttSqhakgfuqdUgaLtDdR-_aCgYKAWkSARESFQGbdwaIUbMKhfq0huB-tA30CEH9Pg0163",
-                RefreshToken = "1//04C6-Y9aw7E-HCgYIARAAGAQSNwF-L9Ir7AfDzvZeDzFLq1RGlXzXWJNaFHxawi2oXm0aw7QOtc9dMZsv43XSCJfIckUYtw8S8EI",
+                AccessToken = "ya29.a0AfB_byBHl7b4_UlxyYr7Xgkz5oMs6r31OQYDictTma6k-3oCxzffAa3QpOe5tquyhgriPz37Lpi1GJnGHy1zqwIA-9H2YlxVa0pqsuvHEX43u8s_BVHksRY8827XvHMGbogs6OPnhFb5PwA_LX-_4QIdb0r9b27KlYd2aCgYKAVkSARESFQHGX2MisDml3uydJpLuJlOWCij3qA0171",
+                RefreshToken = "1//09RAIJVYyKsW-CgYIARAAGAkSNwF-L9Iru2WGEwxJ5bu4losn73QClCx2Qd3HeZDz0R6crhl8I8cFAcITAuNyAhq5KVRYu_j_qR4",
             };
-
-            var applicationName = "EDC Portal";
-            var username = "mikeke373737@gmail.com"; // Use your email
-
-            var apiCodeFlow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
+            string applicationName = "EmailProcessor";
+            string username = "mikeke373737@gmail.com";
+            GoogleAuthorizationCodeFlow apiCodeFlow = new(new()
             {
-                ClientSecrets = new ClientSecrets
+                ClientSecrets = new()
                 {
-                    ClientId = "710753423788-957qlqlr2eqr8u40l6t9fq1cp1sc0cf4.apps.googleusercontent.com",
-                    ClientSecret = "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"
+                    ClientId = "949383295896-gpu3auboojetdg31616t3oect3505qo0.apps.googleusercontent.com",
+                    ClientSecret = "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"
                 },
                 Scopes = new[] { Scope.Drive },
                 DataStore = new FileDataStore(applicationName)
             });
-
-            var credential = new UserCredential(apiCodeFlow, username, tokenResponse);
-
-            var service = new DriveService(new BaseClientService.Initializer
+            UserCredential credential = new(apiCodeFlow, username, tokenResponse);
+            DriveService service = new(new()
             {
                 HttpClientInitializer = credential,
                 ApplicationName = applicationName
