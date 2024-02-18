@@ -2,82 +2,86 @@
 using Google.Apis.Auth.OAuth2.Flows;
 using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Drive.v3;
+using Google.Apis.Drive.v3.Data;
 using Google.Apis.Util.Store;
+using LongRunningTasks.Infrastructure.Configs;
 using static Google.Apis.Drive.v3.DriveService;
+using File = Google.Apis.Drive.v3.Data.File;
 
 namespace LongRunningTasks.Infrastructure.Services
 {
-    public static class DriveServiceFactory
+    internal static class DriveServiceFactory
     {
-        public static DriveService GetService()
+        public static DriveService GetService(GoogleDriveConfig config)
         {
             TokenResponse tokenResponse = new()
             {
-                AccessToken = "ya29.a0AfB_byBHl7b4_UlxyYr7Xgkz5oMs6r31OQYDictTma6k-3oCxzffAa3QpOe5tquyhgriPz37Lpi1GJnGHy1zqwIA-9H2YlxVa0pqsuvHEX43u8s_BVHksRY8827XvHMGbogs6OPnhFb5PwA_LX-_4QIdb0r9b27KlYd2aCgYKAVkSARESFQHGX2MisDml3uydJpLuJlOWCij3qA0171",
-                RefreshToken = "1//09RAIJVYyKsW-CgYIARAAGAkSNwF-L9Iru2WGEwxJ5bu4losn73QClCx2Qd3HeZDz0R6crhl8I8cFAcITAuNyAhq5KVRYu_j_qR4",
+                AccessToken = config.AccessToken,
+                RefreshToken = config.RefreshToken
             };
-            string applicationName = "EmailProcessor";
-            string username = "mikeke373737@gmail.com";
             GoogleAuthorizationCodeFlow apiCodeFlow = new(new()
             {
                 ClientSecrets = new()
                 {
-                    ClientId = "949383295896-gpu3auboojetdg31616t3oect3505qo0.apps.googleusercontent.com",
-                    ClientSecret = "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"
+                    ClientId = config.ClientId,
+                    ClientSecret = config.ClientSecret
                 },
                 Scopes = new[] { Scope.Drive },
-                DataStore = new FileDataStore(applicationName)
+                DataStore = new FileDataStore(config.ApplicationName)
             });
-            UserCredential credential = new(apiCodeFlow, username, tokenResponse);
+            UserCredential credential = new(apiCodeFlow, config.Username, tokenResponse);
             DriveService service = new(new()
             {
                 HttpClientInitializer = credential,
-                ApplicationName = applicationName
+                ApplicationName = config.ApplicationName
             });
 
             return service;
         }
 
-        public static async Task<Google.Apis.Drive.v3.Data.File?> FindFileByNameAsync(this DriveService service, string name)
+        public static async Task<File?> FindFileByNameAsync(this DriveService service, string name)
         {
-            var request = service.Files.List();
-            var fileMetaData = await request.ExecuteAsync();
+            FilesResource.ListRequest request = service.Files.List();
+            FileList fileMetaData = await request.ExecuteAsync();
 
             return fileMetaData.Files.FirstOrDefault(x => x.Name.Contains(name));
         }
 
-        public static async Task<Stream?> GetFileStreamAsync(this DriveService service, Google.Apis.Drive.v3.Data.File fileMetaData)
+        public static async Task<Stream?> GetFileStreamAsync(this DriveService service, File file)
         {
-            var request = service.Files.Get(fileMetaData.Id);
-
-            var fileStream = new MemoryStream();
+            FilesResource.GetRequest request = service.Files.Get(file.Id);
+            MemoryStream fileStream = new();
             await request.DownloadAsync(fileStream);
 
             return fileStream;
         }
 
-        public static async Task<string> UpdateFileAsync(this DriveService service, Google.Apis.Drive.v3.Data.File fileMetaData, Stream stream, string fileName, string fileMime)
+        public static async Task<string> UpdateFileAsync(
+            this DriveService service, File fileMetaData, Stream stream, string fileName, string contentType)
         {
-            var updatedFileMetadata = new Google.Apis.Drive.v3.Data.File();
-            updatedFileMetadata.Name = fileName;
+            File updatedFile = new()
+            {
+                Name = fileName
+            };
+            FilesResource.UpdateMediaUpload updateMediaUpload = service.Files
+                .Update(updatedFile, fileMetaData.Id, stream, contentType);
+            await updateMediaUpload.UploadAsync();
 
-            var updateRequest = service.Files.Update(updatedFileMetadata, fileMetaData.Id, stream, fileMime);
-            await updateRequest.UploadAsync();
-            var fileResult = updateRequest.ResponseBody;
-
-            return fileResult.Id;
+            return updateMediaUpload.ResponseBody.Id;
         }
 
-        public static async Task<string> CreateFileAsync(this DriveService service, Stream stream, string fileName, string fileMime)
+        public static async Task<string> CreateFileAsync(
+            this DriveService service, Stream stream, string fileName, string contentType)
         {
-            var createdFileMetadata = new Google.Apis.Drive.v3.Data.File();
-            createdFileMetadata.Name = fileName;
-
-            var createRequest = service.Files.Create(createdFileMetadata, stream, fileMime);
+            File createdFile = new()
+            {
+                Name = fileName
+            };
+            FilesResource.CreateMediaUpload createRequest = service.Files
+                .Create(createdFile, stream, contentType);
             await createRequest.UploadAsync();
-            var file = createRequest.ResponseBody;
 
-            return file.Id;
+            return createRequest.ResponseBody.Id;
         }
     }
 }

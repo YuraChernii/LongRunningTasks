@@ -1,25 +1,11 @@
-﻿
-using AutoMapper;
-using Hangfire;
-using LongRunningTasks.Application.DTOs;
+﻿using LongRunningTasks.Application.DTOs;
 using LongRunningTasks.Application.Services;
-using LongRunningTasks.Application.Utilities;
-using LongRunningTasks.Application.Utilities.RabbitMQ.Connections;
-using LongRunningTasks.Application.Utilities.RabbitMQ.Subscribers;
-using LongRunningTasks.Core.Repositories;
-using LongRunningTasks.Infrastructure.Config;
-using LongRunningTasks.Infrastructure.Databases.RabbitDB;
-using LongRunningTasks.Infrastructure.Databases.RabbitDB.Repositories;
+using LongRunningTasks.Infrastructure.Configs;
 using LongRunningTasks.Infrastructure.Services;
-using LongRunningTasks.Infrastructure.Utilities;
-using LongRunningTasks.Infrastructure.Utilities.RabbitMQ.Connections;
-using LongRunningTasks.Infrastructure.Utilities.RabbitMQ.Publishers;
-using LongRunningTasks.Infrastructure.Utilities.RabbitMQ.Subscribers;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.EntityFrameworkCore;
+using LongRunningTasks.Infrastructure.Services.Background;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using RabbitMQ.Client;
+using Telegram.Bot;
 
 namespace LongRunningTasks.Infrastructure
 {
@@ -28,55 +14,41 @@ namespace LongRunningTasks.Infrastructure
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config)
         {
             services.AddConfigMapping(config);
-
-            services.AddBackgroundServices(config);
-
-            services.AddDbContext<RabbitDBContext>(options =>
-                options.UseSqlServer(config.GetConnectionString("RabbitDB")));
-
-            services.AddRepositories(config);
+            services.AddServices(config);
 
             return services;
         }
 
-        public static IServiceCollection AddConfigMapping(this IServiceCollection services, IConfiguration config)
+        private static IServiceCollection AddConfigMapping(this IServiceCollection services, IConfiguration config)
         {
-            services.Configure<EmailConfig>(config.GetSection("EmailConfig"));
-            services.Configure<PipeConfig>(config.GetSection("PipeConfig"));
+            services.Configure<GoogleDriveConfig>(config.GetSection("GoogleDrive"));
+            services.Configure<TelegramConfig>(config.GetSection("Telegram"));
+            services.Configure<UkrnetConfig>(config.GetSection("Ukrnet"));
 
             return services;
         }
 
-        public static IServiceCollection AddBackgroundServices(this IServiceCollection services, IConfiguration config)
-        {
-            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+        private static IServiceCollection AddServices(this IServiceCollection services, IConfiguration config) => services
+            .AddTransient<IRetryService, RetryService>()
+            .AddChannelService<ProcessMailDTO>(config)
+            .AddChannelService<PrintMailDTO>(config)
+            .AddSingleton<ITelegramBotClient>(new TelegramBotClient(config["Telegram:BotToken"]!))
+            .AddHostedServices();
 
-            services.AddSingleton<IBackgroundTaskQueue<SendEmailInQueueDTO>>(ctx =>
+        private static IServiceCollection AddChannelService<T>(this IServiceCollection services, IConfiguration config) => services
+            .AddSingleton<IChannelService<T>>(ctx =>
             {
-                if (!int.TryParse(config["Queue:Capacity"], out var queueCapacity))
+                if (!int.TryParse(config["Queue:Capacity"], out int queueCapacity))
+                {
                     queueCapacity = 100;
-                return new BackgroundTaskQueue<SendEmailInQueueDTO>(queueCapacity);
+                }
+
+                return new ChannelService<T>(queueCapacity);
             });
 
-            services.AddHostedService<UkrNetParsingBackgroundService>();
-            services.AddHostedService<QueuedEmailsBackgroundService>();
-
-            return services;
-        }
-
-        public static IServiceCollection AddRepositories(this IServiceCollection services, IConfiguration config)
-        {
-            services.AddScoped<IItemRepository, ItemRepository>();
-
-            return services;
-        }
-
-        public static void UseInfrastructure(this IApplicationBuilder app)
-        {
-            Databases.RabbitDB.Tables.Extensions.Configure(app.ApplicationServices.GetService<IMapper>());
-
-            Utilities.Mapping.Extensions.Configure(app.ApplicationServices.GetService<IMapper>());
-
-        }
+        private static IServiceCollection AddHostedServices(this IServiceCollection services) => services
+            .AddHostedService<UrknetMailParserBackgroundService>()
+            .AddHostedService<UrknetMailProcessorBackgroundService>()
+            .AddHostedService<TelegramChatMessageSenderBackgroundService>();
     }
 }

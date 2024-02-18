@@ -1,4 +1,3 @@
-using LongRunningTasks.Application.Commands.TestINotification;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,16 +19,8 @@ namespace LongRunningTasks.Api.Controllers
             _mediator = mediator;
         }
 
-        [HttpPost("notification")]
-        public async Task<IActionResult> TestINotification(TestINotification testINotification)
-        {
-            await _mediator.Publish(testINotification);
-
-            return Ok();
-        }
-
         [HttpGet("version")]
-        public async Task<IActionResult> GetVesion()
+        public IActionResult GetVesion()
         {
             return Ok("v3");
         }

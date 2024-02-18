@@ -37,8 +37,4 @@
     <ProjectReference Include="..\LongRunningTasks.Core\LongRunningTasks.Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Databases\RabbitDB\TableConfigurations\" />
-  </ItemGroup>
-
 </Project>
