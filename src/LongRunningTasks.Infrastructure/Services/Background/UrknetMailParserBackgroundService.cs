@@ -11,6 +11,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
     internal class UrknetMailParserBackgroundService : BaseBackgroundService<UrknetMailParserBackgroundService>
     {
         private readonly IChannelService<UkrnetMailDTO> _urknetMailChannel;
+        private readonly ImapClient _client;
 
         public UrknetMailParserBackgroundService(
             ILogger<UrknetMailParserBackgroundService> logger,
@@ -19,13 +20,13 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             : base(logger, telegramMessageChannel)
         {
             _urknetMailChannel = urknetMailChannel;
+            _client = UkrNetUtility.CreateClient();
         }
 
         protected async override Task TryExecuteAsync(CancellationToken cancellationToken)
         {
-            ImapClient client = UkrNetUtility.CreateClient();
-            await client.SignInAsync();
-            IMailFolder trashFolder = await client.GetFolder(client.PersonalNamespaces[0])
+            await _client.SignInAsync();
+            IMailFolder trashFolder = await _client.GetFolder(_client.PersonalNamespaces[0])
                                                 .GetSubfolderAsync(MailFolders.Trash, cancellationToken);
             await trashFolder.OpenAsync(FolderAccess.ReadOnly);
 
@@ -34,7 +35,14 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                 await _urknetMailChannel.QueueAsync(new());
             };
 
-            await client.IdleAsync(cancellationToken);
+            await _client.IdleAsync(cancellationToken);
+        }
+
+        public override async Task StopAsync(CancellationToken cancellationToken)
+        {
+            await _client.SignOutAsync();
+
+            await base.StopAsync(cancellationToken);
         }
     }
 }

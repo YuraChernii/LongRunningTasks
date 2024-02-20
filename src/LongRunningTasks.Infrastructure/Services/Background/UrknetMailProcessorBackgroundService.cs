@@ -305,7 +305,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
 
         public override async Task StopAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("Queued Hosted Service is stopping.");
+            await _client.SignOutAsync();
 
             await base.StopAsync(stoppingToken);
         }
