@@ -70,7 +70,6 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             File? file = await driveService.FindFileByNameAsync(_googleDriveConfig.FileName);
             LinkedList<MailModel> savedMails = await GetSavedMailsAsync(file, driveService);
 
-            bool exceptionOccurred = false;
             try
             {
                 IEnumerable<MailModel> deletedEmails = GetDeletedEmails(allMailUniqueIds, savedMails);
@@ -104,17 +103,11 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             }
             catch
             {
-                exceptionOccurred = true;
+                throw;
             }
             finally
             {
                 await SaveMailsToGoogleDrive(savedMails, file, driveService);
-            }
-
-            if (exceptionOccurred)
-            {
-                exceptionOccurred = false;
-                throw;
             }
         }
 
