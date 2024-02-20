@@ -78,7 +78,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                 int indexToStartProcessFrom = savedMailToStartProcessFrom != null
                     ? allMailUniqueIds.FindIndex(x => x.Id == savedMailToStartProcessFrom.Id)
                     : 0;
-                for (int i = indexToStartProcessFrom; i < allMailUniqueIds.Count; i++)
+                for (int i = Math.Max(0, indexToStartProcessFrom); i < allMailUniqueIds.Count; i++)
                 {
                     if (!savedMails.Any(x => x.Id == allMailUniqueIds[i].Id))
                     {
