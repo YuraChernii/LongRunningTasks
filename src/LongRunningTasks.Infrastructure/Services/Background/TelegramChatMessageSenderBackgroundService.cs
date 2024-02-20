@@ -11,18 +11,19 @@ namespace LongRunningTasks.Infrastructure.Services.Background
 {
     internal class TelegramChatMessageSenderBackgroundService : BaseBackgroundService<UrknetMailParserBackgroundService>
     {
-        private readonly IChannelService<PrintMailDTO> _channelService;
+        private readonly IChannelService<TelegramMessageDTO> _channelService;
         private readonly ITelegramBotClient _telegramBotClient;
         private readonly TelegramConfig _telegramConfig;
         private readonly IServiceScopeFactory _serviceScopeFactory;
 
         public TelegramChatMessageSenderBackgroundService(
             ILogger<UrknetMailParserBackgroundService> logger,
-            IChannelService<PrintMailDTO> channelService,
+            IChannelService<TelegramMessageDTO> channelService,
+            IChannelService<TelegramMessageDTO> telegramMessageChannel,
             ITelegramBotClient telegramBotClient,
             IOptions<TelegramConfig> telegramConfig,
             IServiceScopeFactory serviceScopeFactory)
-            : base(logger)
+            : base(logger, telegramMessageChannel)
         {
             _channelService = channelService;
             _telegramBotClient = telegramBotClient;
@@ -35,14 +36,15 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             await using AsyncServiceScope scope = _serviceScopeFactory.CreateAsyncScope();
             IRetryService retryService = scope.ServiceProvider.GetRequiredService<IRetryService>();
 
-            PrintMailDTO mail = await _channelService.DequeueAsync(cancellationToken);
+            TelegramMessageDTO mail = await _channelService.DequeueAsync(cancellationToken);
 
             await retryService.RetryAsync(async () => 
                 await _telegramBotClient.SendTextMessageAsync(
                     GetChatId(mail.MessageType),
                     mail.Message,
                     cancellationToken: cancellationToken
-                )
+                ),
+                int.MaxValue
             );
         }
 
@@ -54,7 +56,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             MailMessageType.VnesenyzminPaid => _telegramConfig.ChatIds.VnesenyzminPaid,
             MailMessageType.OpracovanaVnesenyzmin => _telegramConfig.ChatIds.OpracovanaVnesenyzmin,
             MailMessageType.OpracovanaVnesenyzminPaid => _telegramConfig.ChatIds.OpracovanaVnesenyzminPaid,
-            MailMessageType.Undefined => _telegramConfig.ChatIds.Errors,
+            MailMessageType.Undefined or MailMessageType.Error => _telegramConfig.ChatIds.Errors,
             _ => throw new ArgumentOutOfRangeException(nameof(messageType))
         };
     }

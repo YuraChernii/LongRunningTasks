@@ -2,7 +2,7 @@
 
 namespace LongRunningTasks.Application.DTOs
 {
-    public class PrintMailDTO
+    public class TelegramMessageDTO
     {
         public string Message { get; set; }
         public MailMessageType MessageType { get; set; }

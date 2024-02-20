@@ -8,6 +8,7 @@
         Vnesenyzmin,
         VnesenyzminPaid,
         OpracovanaVnesenyzmin,
-        OpracovanaVnesenyzminPaid
+        OpracovanaVnesenyzminPaid,
+        Error
     }
 }

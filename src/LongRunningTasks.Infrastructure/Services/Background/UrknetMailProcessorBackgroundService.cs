@@ -21,19 +21,20 @@ namespace LongRunningTasks.Infrastructure.Services.Background
         private bool previousProcessingCompleted = true;
         private readonly GoogleDriveConfig _googleDriveConfig;
         private readonly UkrnetConfig _ukrnetConfig;
-        private readonly IChannelService<ProcessMailDTO> _processMailChannel;
-        private readonly IChannelService<PrintMailDTO> _printMailChannel;
+        private readonly IChannelService<UkrnetMailDTO> _processMailChannel;
+        private readonly IChannelService<TelegramMessageDTO> _printMailChannel;
         private readonly IRetryService _retryService;
         private readonly ImapClient _client;
 
         public UrknetMailProcessorBackgroundService(
             IOptions<GoogleDriveConfig> googleDriveConfig,
             IOptions<UkrnetConfig> ukrnetConfig,
-            IChannelService<ProcessMailDTO> processMailChannel,
-            IChannelService<PrintMailDTO> printMailChannel,
+            IChannelService<UkrnetMailDTO> processMailChannel,
+            IChannelService<TelegramMessageDTO> printMailChannel,
             ILogger<UrknetMailProcessorBackgroundService> logger,
+            IChannelService<TelegramMessageDTO> telegramMessageChannel,
             IRetryService retryService)
-            : base(logger)
+            : base(logger, telegramMessageChannel)
         {
             _googleDriveConfig = googleDriveConfig.Value;
             _ukrnetConfig = ukrnetConfig.Value;
@@ -50,21 +51,20 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                                                 .GetSubfolderAsync(MailFolders.Trash, cancellationToken);
             await trashFolder.OpenAsync(FolderAccess.ReadOnly);
 
+            UkrnetMailDTO ukrnetMailDTO = new();
             while (!cancellationToken.IsCancellationRequested)
             {
                 if (previousProcessingCompleted)
                 {
-                    await _processMailChannel.DequeueAsync(cancellationToken);
+                    ukrnetMailDTO = await _processMailChannel.DequeueAsync(cancellationToken);
                 }
                 previousProcessingCompleted = false;
-                await ProcessMailsInFolder(trashFolder);
+                await ProcessMailsInFolder(trashFolder, ukrnetMailDTO.UIds);
             }
         }
 
-        private async Task ProcessMailsInFolder(IMailFolder folder)
+        private async Task ProcessMailsInFolder(IMailFolder folder, List<UniqueId> allMailUniqueIds)
         {
-            List<UniqueId> allMailUniqueIds = await GetAllMailUniqueIds(folder);
-
             DriveService driveService = DriveServiceFactory.GetService(_googleDriveConfig);
             File? file = await driveService.FindFileByNameAsync(_googleDriveConfig.FileName);
             LinkedList<MailModel> savedMails = await GetSavedMailsAsync(file, driveService);
@@ -91,11 +91,14 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                     }
                 }
 
-                await _retryService.RetryAsync(async () =>
-                {
-                    await SendUnProcessedMailsToPrint(folder, savedMails, deletedEmails);
-                    await SendDeletedMailsToPrint(deletedEmails, savedMails);
-                });
+                await _retryService.RetryAsync(
+                    async () =>
+                    {
+                        await SendUnProcessedMailsToPrint(folder, savedMails, deletedEmails);
+                        await SendDeletedMailsToPrint(deletedEmails, savedMails);
+                    },
+                    int.MaxValue
+                );
                 previousProcessingCompleted = true;
             }
             catch
@@ -114,7 +117,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             }
         }
 
-        private PrintMailDTO ProcessMail(MailModel mailToProcess, string text, List<string> prefixsToRemove, string cutOffMarker, MailMessageType messageType)
+        private TelegramMessageDTO ProcessMail(MailModel mailToProcess, string text, List<string> prefixsToRemove, string cutOffMarker, MailMessageType messageType)
         {
             int index = text.IndexOf(cutOffMarker) - (cutOffMarker == "\\r\\n" ? 1 : 0);
             string textToPrint = index >= 0 ? text.Substring(0, index) : text;
@@ -129,13 +132,6 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             };
         }
 
-        private async Task<List<UniqueId>> GetAllMailUniqueIds(IMailFolder folder)
-        {
-            IList<IMessageSummary> summaries = await folder.FetchAsync(0, -1, MessageSummaryItems.UniqueId);
-
-            return summaries.Select(_ => _.UniqueId).ToList();
-        }
-
         private async Task<LinkedList<MailModel>> GetSavedMailsAsync(File? file, DriveService driveService)
         {
             if (file == null)
@@ -144,7 +140,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             }
 
             Stream? stream = await driveService.GetFileStreamAsync(file);
-            stream.Position = 0;
+            stream!.Position = 0;
             StreamReader reader = new(stream);
             string? allFileText = reader.ReadToEnd();
 
@@ -182,7 +178,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                 string? text = message!.TextBody?.ToString();
                 string address = message.From.Mailboxes.FirstOrDefault()?.Address ?? string.Empty;
 
-                PrintMailDTO? printMailDTO = default;
+                TelegramMessageDTO? printMailDTO = default;
                 if (!message.From.Mailboxes.Any(_ => _.Address.Contains(_ukrnetConfig.SentFrom)) || text == null)
                 {
                     mailToProcess.Processed = true;

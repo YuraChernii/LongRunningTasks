@@ -30,8 +30,8 @@ namespace LongRunningTasks.Infrastructure
 
         private static IServiceCollection AddServices(this IServiceCollection services, IConfiguration config) => services
             .AddTransient<IRetryService, RetryService>()
-            .AddChannelService<ProcessMailDTO>(config)
-            .AddChannelService<PrintMailDTO>(config)
+            .AddChannelService<UkrnetMailDTO>(config)
+            .AddChannelService<TelegramMessageDTO>(config)
             .AddSingleton<ITelegramBotClient>(new TelegramBotClient(config["Telegram:BotToken"]!))
             .AddHostedServices();
 

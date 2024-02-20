@@ -4,69 +4,73 @@ using LongRunningTasks.Infrastructure.Constants;
 using LongRunningTasks.Infrastructure.Utilities;
 using MailKit;
 using MailKit.Net.Imap;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace LongRunningTasks.Infrastructure.Services.Background
 {
-    internal class UrknetMailParserBackgroundService : BackgroundService
+    internal class UrknetMailParserBackgroundService : BaseBackgroundService<UrknetMailParserBackgroundService>
     {
-        private readonly ImapClient _client;
-        private readonly ILogger<UrknetMailParserBackgroundService> _logger;
-        private readonly IChannelService<ProcessMailDTO> _processMailChannel;
+        private readonly SemaphoreSlim _semaphoreSlim = new(1, 1);
+        private readonly IChannelService<UkrnetMailDTO> _urknetMailChannel;
 
         public UrknetMailParserBackgroundService(
             ILogger<UrknetMailParserBackgroundService> logger,
-            IChannelService<ProcessMailDTO> processMailChannel)
+            IChannelService<UkrnetMailDTO> urknetMailChannel,
+            IChannelService<TelegramMessageDTO> telegramMessageChannel)
+            : base(logger, telegramMessageChannel)
         {
-            _logger = logger;
-            _processMailChannel = processMailChannel;
-            _client = UkrNetUtility.CreateClient();
+            _urknetMailChannel = urknetMailChannel;
         }
 
-        protected async override Task ExecuteAsync(CancellationToken cancellationToken)
+        protected async override Task TryExecuteAsync(CancellationToken cancellationToken)
         {
-            while (!cancellationToken.IsCancellationRequested)
+            (ImapClient Client, IMailFolder Folder) openRusult1 = await OpenTrashFolder(cancellationToken);
+            (ImapClient Client, IMailFolder Folder) openRusult2 = await OpenTrashFolder(cancellationToken);
+
+            openRusult1.Folder.CountChanged += async (sender, e) =>
             {
-                try
+                await Lock(async () =>
                 {
-                    await ProcessEmailsAsync(cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, string.Empty);
-                }
+                    List<UniqueId> uIds = await GetAllMailUniqueIds(openRusult2.Folder);
+                    await _urknetMailChannel.QueueAsync(new UkrnetMailDTO()
+                    {
+                        UIds = uIds
+                    });
+                });
+            };
+
+            await openRusult1.Client.IdleAsync(cancellationToken);
+        }
+
+        private async Task Lock(Func<Task> action)
+        {
+            try
+            {
+                await _semaphoreSlim.WaitAsync();
+                await action();
+            }
+            finally
+            {
+                _semaphoreSlim.Release();
             }
         }
 
-        private async Task ProcessEmailsAsync(CancellationToken cancellationToken)
+        private async Task<(ImapClient, IMailFolder)> OpenTrashFolder(CancellationToken cancellationToken)
         {
-            await _client.SignInAsync();
-            IMailFolder trashFolder = await _client.GetFolder(_client.PersonalNamespaces[0])
+            ImapClient client = UkrNetUtility.CreateClient();
+            await client.SignInAsync();
+            IMailFolder trashFolder = await client.GetFolder(client.PersonalNamespaces[0])
                                                 .GetSubfolderAsync(MailFolders.Trash, cancellationToken);
             await trashFolder.OpenAsync(FolderAccess.ReadOnly);
-            trashFolder.CountChanged += (sender, e) =>
-            {
-                ImapFolder? folder = (ImapFolder?)sender;
-                UniqueId? uId = folder?.UidNext;
-                if (uId.HasValue)
-                {
-                    _processMailChannel.QueueAsync(new ProcessMailDTO()
-                    {
-                        UId = uId.Value
-                    });
-                }
-            };
-            await _client.IdleAsync(cancellationToken);
+
+            return (client, trashFolder);
         }
 
-        public override async Task StopAsync(CancellationToken cancellationToken)
+        private async Task<List<UniqueId>> GetAllMailUniqueIds(IMailFolder folder)
         {
-            await _client.SignOutAsync();
+            IList<IMessageSummary> summaries = await folder.FetchAsync(0, -1, MessageSummaryItems.UniqueId);
 
-            await base.StopAsync(cancellationToken);
+            return summaries.Select(_ => _.UniqueId).ToList();
         }
     }
 }
-
-

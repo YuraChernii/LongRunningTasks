@@ -4,7 +4,7 @@ namespace LongRunningTasks.Infrastructure.Services
 {
     internal class RetryService : IRetryService
     {
-        public async Task RetryAsync(Func<Task> action, int maxRetries = 5, int delayMilliseconds = 1000)
+        public async Task RetryAsync(Func<Task> action, int maxRetries = 5, int delayMilliseconds = 2000)
         {
             int attempt = 0;
             do
