@@ -51,20 +51,21 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                                                 .GetSubfolderAsync(MailFolders.Trash, cancellationToken);
             await trashFolder.OpenAsync(FolderAccess.ReadOnly);
 
-            UkrnetMailDTO ukrnetMailDTO = new();
             while (!cancellationToken.IsCancellationRequested)
             {
                 if (previousProcessingCompleted)
                 {
-                    ukrnetMailDTO = await _processMailChannel.DequeueAsync(cancellationToken);
+                    await _processMailChannel.DequeueAsync(cancellationToken);
                 }
                 previousProcessingCompleted = false;
-                await ProcessMailsInFolder(trashFolder, ukrnetMailDTO.UIds);
+                await ProcessMailsInFolder(trashFolder);
             }
         }
 
-        private async Task ProcessMailsInFolder(IMailFolder folder, List<UniqueId> allMailUniqueIds)
+        private async Task ProcessMailsInFolder(IMailFolder folder)
         {
+            List<UniqueId> allMailUniqueIds = await GetAllMailUniqueIds(folder);
+
             DriveService driveService = DriveServiceFactory.GetService(_googleDriveConfig);
             File? file = await driveService.FindFileByNameAsync(_googleDriveConfig.FileName);
             LinkedList<MailModel> savedMails = await GetSavedMailsAsync(file, driveService);
@@ -115,6 +116,13 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                 exceptionOccurred = false;
                 throw new Exception();
             }
+        }
+
+        private async Task<List<UniqueId>> GetAllMailUniqueIds(IMailFolder folder)
+        {
+            IList<IMessageSummary> summaries = await folder.FetchAsync(0, -1, MessageSummaryItems.UniqueId);
+
+            return summaries.Select(_ => _.UniqueId).ToList();
         }
 
         private TelegramMessageDTO ProcessMail(MailModel mailToProcess, string text, List<string> prefixsToRemove, string cutOffMarker, MailMessageType messageType)
