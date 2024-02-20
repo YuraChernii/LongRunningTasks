@@ -80,13 +80,9 @@ namespace LongRunningTasks.Infrastructure.Services.Background
 
             try
             {
-                IEnumerable<MailModel> deletedEmails = GetDeletedEmails(allMailUniqueIds, savedMails);
+                IEnumerable<MailModel> deletedEmails = GetDeletedEmails(allMailUniqueIds, savedMails, out int indexToStartProcessFrom);
 
-                MailModel? savedMailToStartProcessFrom = savedMails.FirstOrDefault(x => !x.Processed) ?? savedMails.LastOrDefault();
-                int indexToStartProcessFrom = savedMailToStartProcessFrom != null
-                    ? allMailUniqueIds.FindIndex(x => x.Id == savedMailToStartProcessFrom.Id)
-                    : 0;
-                for (int i = Math.Max(0, indexToStartProcessFrom); i < allMailUniqueIds.Count; i++)
+                for (int i = indexToStartProcessFrom; i < allMailUniqueIds.Count; i++)
                 {
                     if (!savedMails.Any(x => x.Id == allMailUniqueIds[i].Id))
                     {
@@ -167,17 +163,34 @@ namespace LongRunningTasks.Infrastructure.Services.Background
         }
 
         private IEnumerable<MailModel> GetDeletedEmails(
-            IEnumerable<UniqueId> allMailUniqueIds, IEnumerable<MailModel> savedMails)
+            List<UniqueId> allMailUniqueIds, IEnumerable<MailModel> savedMails, out int indexToStartProcessFrom)
         {
+            indexToStartProcessFrom = 0;
+            bool stopCount = false;
             List<MailModel> deletedMails = new();
             foreach (MailModel savedMail in savedMails)
             {
-                if (!allMailUniqueIds.Any(id => id.Id == savedMail.Id))
+                int tempIndex = allMailUniqueIds.FindIndex(id => id.Id == savedMail.Id);
+                if (tempIndex == -1)
                 {
                     deletedMails.Add(savedMail);
                     savedMail.Processed = true;
                 }
+                else
+                {
+                    if (!stopCount)
+                    {
+                        indexToStartProcessFrom = tempIndex;
+                    }
+
+                    if (!savedMail.Processed)
+                    {
+                        stopCount = true;
+                    }
+                }
             }
+
+            indexToStartProcessFrom = Math.Max(0, indexToStartProcessFrom);
 
             return deletedMails;
         }
