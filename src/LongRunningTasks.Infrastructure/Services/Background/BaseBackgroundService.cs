@@ -30,6 +30,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                 }
                 catch (Exception ex)
                 {
+                    await CatchAsync();
                     _logger.LogError(ex, string.Empty);
                     await _telegramMessageChannel.QueueAsync(new()
                     {
@@ -41,5 +42,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
         }
 
         protected abstract Task TryExecuteAsync(CancellationToken cancellationToken);
+
+        protected virtual Task CatchAsync() => Task.CompletedTask;
     }
 }

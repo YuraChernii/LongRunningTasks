@@ -303,6 +303,11 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             }
         }
 
+        protected async override Task CatchAsync()
+        {
+            await _client.SignOutAsync();
+        }
+
         public override async Task StopAsync(CancellationToken stoppingToken)
         {
             await _client.SignOutAsync();
