@@ -1,4 +1,5 @@
 ﻿using LongRunningTasks.Application.DTOs;
+using LongRunningTasks.Application.ExtensionsN;
 using LongRunningTasks.Application.Services;
 using LongRunningTasks.Core.Enums;
 using LongRunningTasks.Infrastructure.Configs;
@@ -44,7 +45,15 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                     mail.Message,
                     cancellationToken: cancellationToken
                 ),
-                int.MaxValue
+                int.MaxValue,
+                catchAsync: async (Exception ex) =>
+                {
+                    await _telegramMessageChannel.QueueAsync(new()
+                    {
+                        MessageType = MailMessageType.Error,
+                        Message = ex.GetFullMessage()
+                    });
+                }
             );
         }
 

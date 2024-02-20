@@ -1,5 +1,6 @@
 ﻿using Google.Apis.Drive.v3;
 using LongRunningTasks.Application.DTOs;
+using LongRunningTasks.Application.ExtensionsN;
 using LongRunningTasks.Application.Services;
 using LongRunningTasks.Core.Enums;
 using LongRunningTasks.Core.Models;
@@ -46,10 +47,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
 
         protected override async Task TryExecuteAsync(CancellationToken cancellationToken)
         {
-            await _client.SignInAsync();
-            IMailFolder trashFolder = await _client.GetFolder(_client.PersonalNamespaces[0])
-                                                .GetSubfolderAsync(MailFolders.Trash, cancellationToken);
-            await trashFolder.OpenAsync(FolderAccess.ReadOnly);
+            IMailFolder trashFolder = await OpenTrashFolder(cancellationToken);
 
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -60,6 +58,16 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                 previousProcessingCompleted = false;
                 await ProcessMailsInFolder(trashFolder);
             }
+        }
+
+        private async Task<IMailFolder> OpenTrashFolder(CancellationToken cancellationToken)
+        {
+            await _client.SignInAsync();
+            IMailFolder trashFolder = await _client.GetFolder(_client.PersonalNamespaces[0])
+                                                .GetSubfolderAsync(MailFolders.Trash, cancellationToken);
+            await trashFolder.OpenAsync(FolderAccess.ReadOnly);
+
+            return trashFolder;
         }
 
         private async Task ProcessMailsInFolder(IMailFolder folder)
@@ -97,7 +105,17 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                         await SendUnProcessedMailsToPrint(folder, savedMails, deletedEmails);
                         await SendDeletedMailsToPrint(deletedEmails, savedMails);
                     },
-                    int.MaxValue
+                    int.MaxValue,
+                    catchAsync: async (Exception ex) =>
+                    {
+                        await _client.SignOutAsync();
+                        folder = await OpenTrashFolder(CancellationToken.None);
+                        await _telegramMessageChannel.QueueAsync(new()
+                        {
+                            MessageType = MailMessageType.Error,
+                            Message = ex.GetFullMessage()
+                        });
+                    }
                 );
                 previousProcessingCompleted = true;
             }

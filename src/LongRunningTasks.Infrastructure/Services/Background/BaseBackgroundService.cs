@@ -10,7 +10,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
     internal abstract class BaseBackgroundService<T> : BackgroundService
     {
         protected readonly ILogger<T> _logger;
-        private readonly IChannelService<TelegramMessageDTO> _telegramMessageChannel;
+        protected readonly IChannelService<TelegramMessageDTO> _telegramMessageChannel;
 
         public BaseBackgroundService(
             ILogger<T> logger,
