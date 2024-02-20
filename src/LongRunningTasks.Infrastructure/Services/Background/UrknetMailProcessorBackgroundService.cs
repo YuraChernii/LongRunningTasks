@@ -114,7 +114,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             if (exceptionOccurred)
             {
                 exceptionOccurred = false;
-                throw new Exception();
+                throw;
             }
         }
 
