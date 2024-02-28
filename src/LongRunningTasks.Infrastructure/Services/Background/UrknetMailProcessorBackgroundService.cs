@@ -1,6 +1,5 @@
 ﻿using Google.Apis.Drive.v3;
 using LongRunningTasks.Application.DTOs;
-using LongRunningTasks.Application.ExtensionsN;
 using LongRunningTasks.Application.Services;
 using LongRunningTasks.Core.Enums;
 using LongRunningTasks.Core.Models;
@@ -23,26 +22,26 @@ namespace LongRunningTasks.Infrastructure.Services.Background
         private readonly GoogleDriveConfig _googleDriveConfig;
         private readonly UkrnetConfig _ukrnetConfig;
         private readonly IChannelService<UkrnetMailDTO> _processMailChannel;
-        private readonly IChannelService<TelegramMessageDTO> _printMailChannel;
         private readonly IRetryService _retryService;
+        private readonly IChannelService<TelegramMessageDTO> _telegramMessageChannel;
         private readonly ImapClient _client;
 
         public UrknetMailProcessorBackgroundService(
             IOptions<GoogleDriveConfig> googleDriveConfig,
             IOptions<UkrnetConfig> ukrnetConfig,
             IChannelService<UkrnetMailDTO> processMailChannel,
-            IChannelService<TelegramMessageDTO> printMailChannel,
             ILogger<UrknetMailProcessorBackgroundService> logger,
             IChannelService<TelegramMessageDTO> telegramMessageChannel,
-            IRetryService retryService)
-            : base(logger, telegramMessageChannel)
+            IRetryService retryService,
+            IExceptionTelegramService exceptionTelegramService)
+            : base(logger, exceptionTelegramService)
         {
             _googleDriveConfig = googleDriveConfig.Value;
             _ukrnetConfig = ukrnetConfig.Value;
             _processMailChannel = processMailChannel;
-            _printMailChannel = printMailChannel;
             _client = UkrNetUtility.CreateClient();
             _retryService = retryService;
+            _telegramMessageChannel = telegramMessageChannel;
         }
 
         protected override async Task TryExecuteAsync(CancellationToken cancellationToken)
@@ -106,11 +105,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                     {
                         await _client.SignOutAsync();
                         folder = await OpenTrashFolder(CancellationToken.None);
-                        await _telegramMessageChannel.QueueAsync(new()
-                        {
-                            MessageType = MailMessageType.Error,
-                            Message = ex.GetFullMessage()
-                        });
+                        await _exceptionTelegramService.QueueExceptionNotification(ex);
                     }
                 );
                 previousProcessingCompleted = true;
@@ -258,7 +253,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                         MailMessageType.VnesenyzminPaid
                     );
                 }
-                else if (text.Contains(", Заява") && text.Contains("опрацьована."))
+                else if (text.Contains(", Заява/Повідомлення") && text.Contains("опрацьована."))
                 {
                     if (text.Contains("За результатами опрацювання"))
                     {
@@ -266,7 +261,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                             mailToProcess,
                             text,
                             new() { "Шановний(а) ", "Шановний" },
-                            ", Заява",
+                            ", Заява/Повідомлення",
                             MailMessageType.OpracovanaVnesenyzminPaid
                         );
                     }
@@ -276,7 +271,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                             mailToProcess,
                             text,
                             new() { "Шановний(а) ", "Шановний" },
-                            ", Заява",
+                            ", Заява/Повідомлення",
                             MailMessageType.OpracovanaVnesenyzmin
                         );
                     }
@@ -284,7 +279,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
 
                 if (printMailDTO != null)
                 {
-                    await _printMailChannel.QueueAsync(printMailDTO);
+                    await _telegramMessageChannel.QueueAsync(printMailDTO);
                 }
 
                 mailToProcess.Processed = true;
@@ -298,7 +293,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                 string message = deletedMail.Message != null
                     ? "Було видалено: " + deletedMail.Message.TrimStart() + "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
                     : $"Було видалено email з id: {deletedMail.Id}";
-                await _printMailChannel.QueueAsync(new()
+                await _telegramMessageChannel.QueueAsync(new()
                 {
                     Message = message,
                     MessageType = deletedMail.MessageType
@@ -306,7 +301,6 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                 savedMails.Remove(deletedMail);
             }
         }
-
 
         private async Task SaveMailsToGoogleDrive(IEnumerable<MailModel> mails, File? file, DriveService driveService)
         {

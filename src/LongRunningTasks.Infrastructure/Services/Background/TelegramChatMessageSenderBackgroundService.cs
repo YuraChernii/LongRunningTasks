@@ -1,5 +1,4 @@
 ﻿using LongRunningTasks.Application.DTOs;
-using LongRunningTasks.Application.ExtensionsN;
 using LongRunningTasks.Application.Services;
 using LongRunningTasks.Core.Enums;
 using LongRunningTasks.Infrastructure.Configs;
@@ -12,21 +11,21 @@ namespace LongRunningTasks.Infrastructure.Services.Background
 {
     internal class TelegramChatMessageSenderBackgroundService : BaseBackgroundService<UrknetMailParserBackgroundService>
     {
-        private readonly IChannelService<TelegramMessageDTO> _channelService;
+        private readonly IChannelService<TelegramMessageDTO> _telegramMessageChannel;
         private readonly ITelegramBotClient _telegramBotClient;
         private readonly TelegramConfig _telegramConfig;
         private readonly IServiceScopeFactory _serviceScopeFactory;
 
         public TelegramChatMessageSenderBackgroundService(
             ILogger<UrknetMailParserBackgroundService> logger,
-            IChannelService<TelegramMessageDTO> channelService,
+            IExceptionTelegramService exceptionTelegramService,
             IChannelService<TelegramMessageDTO> telegramMessageChannel,
             ITelegramBotClient telegramBotClient,
             IOptions<TelegramConfig> telegramConfig,
             IServiceScopeFactory serviceScopeFactory)
-            : base(logger, telegramMessageChannel)
+            : base(logger, exceptionTelegramService)
         {
-            _channelService = channelService;
+            _telegramMessageChannel = telegramMessageChannel;
             _telegramBotClient = telegramBotClient;
             _telegramConfig = telegramConfig.Value;
             _serviceScopeFactory = serviceScopeFactory;
@@ -37,7 +36,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             await using AsyncServiceScope scope = _serviceScopeFactory.CreateAsyncScope();
             IRetryService retryService = scope.ServiceProvider.GetRequiredService<IRetryService>();
 
-            TelegramMessageDTO mail = await _channelService.DequeueAsync(cancellationToken);
+            TelegramMessageDTO mail = await _telegramMessageChannel.DequeueAsync(cancellationToken);
 
             await retryService.RetryAsync(async () => 
                 await _telegramBotClient.SendTextMessageAsync(
@@ -48,11 +47,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                 int.MaxValue,
                 catchAsync: async (Exception ex) =>
                 {
-                    await _telegramMessageChannel.QueueAsync(new()
-                    {
-                        MessageType = MailMessageType.Error,
-                        Message = ex.GetFullMessage()
-                    });
+                    await _exceptionTelegramService.QueueExceptionNotification(ex);
                 }
             );
         }

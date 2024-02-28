@@ -16,8 +16,8 @@ namespace LongRunningTasks.Infrastructure.Services.Background
         public UrknetMailParserBackgroundService(
             ILogger<UrknetMailParserBackgroundService> logger,
             IChannelService<UkrnetMailDTO> urknetMailChannel,
-            IChannelService<TelegramMessageDTO> telegramMessageChannel)
-            : base(logger, telegramMessageChannel)
+            IExceptionTelegramService exceptionHandlerService)
+            : base(logger, exceptionHandlerService)
         {
             _urknetMailChannel = urknetMailChannel;
             _client = UkrNetUtility.CreateClient();
