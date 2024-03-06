@@ -14,7 +14,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
         private readonly ITelegramBotClient _telegramBotClient;
         private readonly TelegramConfig _telegramConfig;
         private readonly IRetryService _retryService;
-        private readonly List<uint> _processedIds = new();
+        private readonly LinkedList<uint> _processedIds = new();
 
         public TelegramChatMessageSenderBackgroundService(
             ILogger<UrknetMailParserBackgroundService> logger,
@@ -43,10 +43,10 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                 }
                 else
                 {
-                    _processedIds.Add(mail.Id.Value);
+                    _processedIds.AddLast(mail.Id.Value);
                     if (_processedIds.Count > 20)
                     {
-                        _processedIds.Remove(_processedIds.First());
+                        _processedIds.RemoveFirst();
                     }
                 }
             }
