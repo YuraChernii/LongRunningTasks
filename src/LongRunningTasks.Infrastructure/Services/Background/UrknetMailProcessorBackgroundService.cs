@@ -22,7 +22,6 @@ namespace LongRunningTasks.Infrastructure.Services.Background
         private readonly GoogleDriveConfig _googleDriveConfig;
         private readonly UkrnetConfig _ukrnetConfig;
         private readonly IChannelService<UkrnetMailDTO> _processMailChannel;
-        private readonly IRetryService _retryService;
         private readonly IChannelService<TelegramMessageDTO> _telegramMessageChannel;
         private readonly ImapClient _client;
 
@@ -32,7 +31,6 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             IChannelService<UkrnetMailDTO> processMailChannel,
             ILogger<UrknetMailProcessorBackgroundService> logger,
             IChannelService<TelegramMessageDTO> telegramMessageChannel,
-            IRetryService retryService,
             IExceptionTelegramService exceptionTelegramService)
             : base(logger, exceptionTelegramService)
         {
@@ -40,7 +38,6 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             _ukrnetConfig = ukrnetConfig.Value;
             _processMailChannel = processMailChannel;
             _client = UkrNetUtility.CreateClient();
-            _retryService = retryService;
             _telegramMessageChannel = telegramMessageChannel;
         }
 
@@ -77,47 +74,27 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             File? file = await driveService.FindFileByNameAsync(_googleDriveConfig.FileName);
             LinkedList<MailModel> savedMails = await GetSavedMailsAsync(file, driveService);
 
-            try
+            IEnumerable<MailModel> deletedEmails = GetDeletedEmails(allMailUniqueIds, savedMails, out int indexToStartProcessFrom);
+
+            for (int i = indexToStartProcessFrom; i < allMailUniqueIds.Count; i++)
             {
-                IEnumerable<MailModel> deletedEmails = GetDeletedEmails(allMailUniqueIds, savedMails, out int indexToStartProcessFrom);
-
-                for (int i = indexToStartProcessFrom; i < allMailUniqueIds.Count; i++)
+                if (!savedMails.Any(x => x.Id == allMailUniqueIds[i].Id))
                 {
-                    if (!savedMails.Any(x => x.Id == allMailUniqueIds[i].Id))
-                    {
-                        savedMails.AddLast(new MailModel() { Id = allMailUniqueIds[i].Id });
+                    savedMails.AddLast(new MailModel() { Id = allMailUniqueIds[i].Id });
 
-                        if (savedMails.Count > 200)
-                        {
-                            savedMails.RemoveFirst();
-                        }
+                    if (savedMails.Count > 200)
+                    {
+                        savedMails.RemoveFirst();
                     }
                 }
+            }
 
-                await _retryService.RetryAsync(
-                    async () =>
-                    {
-                        await SendUnProcessedMailsToPrint(folder, savedMails, deletedEmails);
-                        await SendDeletedMailsToPrint(deletedEmails, savedMails);
-                    },
-                    int.MaxValue,
-                    catchAsync: async (Exception ex) =>
-                    {
-                        await _client.SignOutAsync();
-                        folder = await OpenTrashFolder(CancellationToken.None);
-                        await _exceptionTelegramService.QueueExceptionNotification(ex);
-                    }
-                );
-                previousProcessingCompleted = true;
-            }
-            catch
-            {
-                throw;
-            }
-            finally
-            {
-                await SaveMailsToGoogleDrive(savedMails, file, driveService);
-            }
+            await SendUnProcessedMailsToPrint(folder, savedMails, deletedEmails);
+            await SendDeletedMailsToPrint(deletedEmails, savedMails);
+
+            await SaveMailsToGoogleDrive(savedMails, file, driveService);
+
+            previousProcessingCompleted = true;
         }
 
         private async Task<List<UniqueId>> GetAllMailUniqueIds(IMailFolder folder)

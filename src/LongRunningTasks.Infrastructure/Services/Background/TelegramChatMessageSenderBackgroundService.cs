@@ -35,20 +35,9 @@ namespace LongRunningTasks.Infrastructure.Services.Background
         {
             TelegramMessageDTO mail = await _telegramMessageChannel.DequeueAsync(cancellationToken);
 
-            if (mail.Id.HasValue)
+            if (mail.Id.HasValue && !EnsureUniqueMessage(mail.Id.Value))
             {
-                if (_processedIds.Contains(mail.Id.Value))
-                {
-                    return;
-                }
-                else
-                {
-                    _processedIds.AddLast(mail.Id.Value);
-                    if (_processedIds.Count > 20)
-                    {
-                        _processedIds.RemoveFirst();
-                    }
-                }
+                return;
             }
 
             await _retryService.RetryAsync(async () =>
@@ -63,6 +52,22 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                     await _exceptionTelegramService.QueueExceptionNotification(ex);
                 }
             );
+        }
+
+        private bool EnsureUniqueMessage(uint id)
+        {
+            if (_processedIds.Contains(id))
+            {
+                return false;
+            }
+
+            _processedIds.AddLast(id);
+            if (_processedIds.Count > 20)
+            {
+                _processedIds.RemoveFirst();
+            }
+
+            return true;
         }
 
         private string GetChatId(MailMessageType messageType) => messageType switch
