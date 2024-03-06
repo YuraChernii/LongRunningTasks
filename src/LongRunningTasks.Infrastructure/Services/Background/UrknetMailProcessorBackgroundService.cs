@@ -109,9 +109,11 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                 }
             }
 
-            return firstNewMail != null && savedMails.Contains(firstNewMail)
-                ? savedMails.SkipWhile(item => item != firstNewMail)
-                : savedMails;
+            return firstNewMail != null
+                ? savedMails.Contains(firstNewMail)
+                    ? savedMails.SkipWhile(item => item != firstNewMail)
+                    : savedMails
+                : Enumerable.Empty<MailModel>();
         }
 
         private TelegramMessageDTO ProcessMail(MailModel mailToProcess, string text, List<string> prefixsToRemove, string cutOffMarker, MailMessageType messageType)
