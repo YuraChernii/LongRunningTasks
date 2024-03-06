@@ -137,6 +137,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
 
             return new()
             {
+                Id = mailToProcess.Id,
                 Message = textToPrint,
                 MessageType = messageType
             };
@@ -185,8 +186,6 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                 }
             }
 
-            indexToStartProcessFrom = Math.Max(0, indexToStartProcessFrom);
-
             return deletedMails;
         }
 
@@ -205,7 +204,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                 string? text = message!.TextBody?.ToString();
                 string address = message.From.Mailboxes.FirstOrDefault()?.Address ?? string.Empty;
 
-                TelegramMessageDTO? printMailDTO = default;
+                TelegramMessageDTO? printMailDTO = null;
                 if (!message.From.Mailboxes.Any(_ => _.Address.Contains(_ukrnetConfig.SentFrom)) || text == null)
                 {
                     mailToProcess.Processed = true;
@@ -304,20 +303,20 @@ namespace LongRunningTasks.Infrastructure.Services.Background
 
         private async Task SaveMailsToGoogleDrive(IEnumerable<MailModel> mails, File? file, DriveService driveService)
         {
-            if (mails.Any())
+            if (!mails.Any())
             {
-                using Stream memoryStream = new MemoryStream();
-                JsonSerializer.Serialize(memoryStream, mails);
-                if (file == null)
-                {
-                    await driveService.CreateFileAsync(memoryStream, _googleDriveConfig.FileName, _googleDriveConfig.FileMime);
-                }
-                else
-                {
-                    await driveService.UpdateFileAsync(file, memoryStream, _googleDriveConfig.FileName, _googleDriveConfig.FileMime);
-                }
+                return;
+            }
 
-                memoryStream.Dispose();
+            using Stream memoryStream = new MemoryStream();
+            JsonSerializer.Serialize(memoryStream, mails);
+            if (file == null)
+            {
+                await driveService.CreateFileAsync(memoryStream, _googleDriveConfig.FileName, _googleDriveConfig.FileMime);
+            }
+            else
+            {
+                await driveService.UpdateFileAsync(file, memoryStream, _googleDriveConfig.FileName, _googleDriveConfig.FileMime);
             }
         }
 

@@ -4,12 +4,8 @@ namespace LongRunningTasks.Infrastructure.Services
 {
     internal class RetryService : IRetryService
     {
-        private readonly Func<Exception, Task> _defaultCatcher = (Exception ex) => Task.CompletedTask;
-
-
-        public async Task RetryAsync(Func<Task> action, int maxRetries = 5, int delayMilliseconds = 2000, Func<Exception, Task>? catchAsync = default)
+        public async Task RetryAsync(Func<Task> action, int maxRetries = 5, int delayMilliseconds = 2000, Func<Exception, Task>? catchAsync = null)
         {
-            catchAsync ??= _defaultCatcher;
             int attempt = 0;
             do
             {
@@ -27,7 +23,10 @@ namespace LongRunningTasks.Infrastructure.Services
                     }
 
                     await Task.Delay(delayMilliseconds);
-                    await catchAsync(ex);
+                    if (catchAsync != null)
+                    {
+                        await catchAsync(ex);
+                    }
                 }
             } while (true);
         }

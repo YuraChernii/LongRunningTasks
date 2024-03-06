@@ -2,7 +2,6 @@
 using LongRunningTasks.Application.Services;
 using LongRunningTasks.Core.Enums;
 using LongRunningTasks.Infrastructure.Configs;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Telegram.Bot;
@@ -14,7 +13,8 @@ namespace LongRunningTasks.Infrastructure.Services.Background
         private readonly IChannelService<TelegramMessageDTO> _telegramMessageChannel;
         private readonly ITelegramBotClient _telegramBotClient;
         private readonly TelegramConfig _telegramConfig;
-        private readonly IServiceScopeFactory _serviceScopeFactory;
+        private readonly IRetryService _retryService;
+        private readonly List<uint> _processedIds = new();
 
         public TelegramChatMessageSenderBackgroundService(
             ILogger<UrknetMailParserBackgroundService> logger,
@@ -22,23 +22,36 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             IChannelService<TelegramMessageDTO> telegramMessageChannel,
             ITelegramBotClient telegramBotClient,
             IOptions<TelegramConfig> telegramConfig,
-            IServiceScopeFactory serviceScopeFactory)
+            IRetryService retryService)
             : base(logger, exceptionTelegramService)
         {
             _telegramMessageChannel = telegramMessageChannel;
             _telegramBotClient = telegramBotClient;
             _telegramConfig = telegramConfig.Value;
-            _serviceScopeFactory = serviceScopeFactory;
+            _retryService = retryService;
         }
 
         protected async override Task TryExecuteAsync(CancellationToken cancellationToken)
         {
-            await using AsyncServiceScope scope = _serviceScopeFactory.CreateAsyncScope();
-            IRetryService retryService = scope.ServiceProvider.GetRequiredService<IRetryService>();
-
             TelegramMessageDTO mail = await _telegramMessageChannel.DequeueAsync(cancellationToken);
 
-            await retryService.RetryAsync(async () => 
+            if (mail.Id.HasValue)
+            {
+                if (_processedIds.Contains(mail.Id.Value))
+                {
+                    return;
+                }
+                else
+                {
+                    _processedIds.Add(mail.Id.Value);
+                    if (_processedIds.Count > 20)
+                    {
+                        _processedIds.Remove(_processedIds.First());
+                    }
+                }
+            }
+
+            await _retryService.RetryAsync(async () =>
                 await _telegramBotClient.SendTextMessageAsync(
                     GetChatId(mail.MessageType),
                     mail.Message,
