@@ -99,8 +99,9 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             {
                 if (!savedMails.Any(x => x.Id == allMailUniqueIds[i].Id))
                 {
-                    firstNewMail = firstNewMail ?? new() { Id = allMailUniqueIds[i].Id };
-                    savedMails.AddLast(firstNewMail);
+                    MailModel newMail = new() { Id = allMailUniqueIds[i].Id };
+                    firstNewMail = firstNewMail ?? newMail;
+                    savedMails.AddLast(newMail);
 
                     if (savedMails.Count > 200)
                     {
