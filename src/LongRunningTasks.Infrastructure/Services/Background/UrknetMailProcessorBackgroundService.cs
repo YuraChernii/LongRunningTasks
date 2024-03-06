@@ -74,23 +74,11 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             File? file = await driveService.FindFileByNameAsync(_googleDriveConfig.FileName);
             LinkedList<MailModel> savedMails = await GetSavedMailsAsync(file, driveService);
 
-            IEnumerable<MailModel> deletedEmails = GetDeletedEmails(allMailUniqueIds, savedMails, out int indexToStartProcessFrom);
+            IEnumerable<MailModel> deletedMails = GetDeletedMails(allMailUniqueIds, savedMails, out int indexToStartProcessFrom);
+            IEnumerable<MailModel> newMails = ProcessNewMails(savedMails, indexToStartProcessFrom, allMailUniqueIds);
 
-            for (int i = indexToStartProcessFrom; i < allMailUniqueIds.Count; i++)
-            {
-                if (!savedMails.Any(x => x.Id == allMailUniqueIds[i].Id))
-                {
-                    savedMails.AddLast(new MailModel() { Id = allMailUniqueIds[i].Id });
-
-                    if (savedMails.Count > 200)
-                    {
-                        savedMails.RemoveFirst();
-                    }
-                }
-            }
-
-            await SendUnProcessedMailsToPrint(folder, savedMails, deletedEmails);
-            await SendDeletedMailsToPrint(deletedEmails, savedMails);
+            await SendNewMailsToPrint(folder, newMails, deletedMails);
+            await SendDeletedMailsToPrint(deletedMails, savedMails);
 
             await SaveMailsToGoogleDrive(savedMails, file, driveService);
 
@@ -102,6 +90,28 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             IList<IMessageSummary> summaries = await folder.FetchAsync(0, -1, MessageSummaryItems.UniqueId);
 
             return summaries.Select(_ => _.UniqueId).ToList();
+        }
+
+        private IEnumerable<MailModel> ProcessNewMails(LinkedList<MailModel> savedMails, int indexToStartProcessFrom, List<UniqueId> allMailUniqueIds)
+        {
+            MailModel? firstNewMail = null;
+            for (int i = indexToStartProcessFrom; i < allMailUniqueIds.Count; i++)
+            {
+                if (!savedMails.Any(x => x.Id == allMailUniqueIds[i].Id))
+                {
+                    firstNewMail = new() { Id = allMailUniqueIds[i].Id };
+                    savedMails.AddLast(firstNewMail);
+
+                    if (savedMails.Count > 200)
+                    {
+                        savedMails.RemoveFirst();
+                    }
+                }
+            }
+
+            return firstNewMail != null && savedMails.Contains(firstNewMail)
+                ? savedMails.SkipWhile(item => item != firstNewMail)
+                : savedMails;
         }
 
         private TelegramMessageDTO ProcessMail(MailModel mailToProcess, string text, List<string> prefixsToRemove, string cutOffMarker, MailMessageType messageType)
@@ -135,11 +145,10 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             return JsonSerializer.Deserialize<LinkedList<MailModel>>(allFileText) ?? new();
         }
 
-        private IEnumerable<MailModel> GetDeletedEmails(
+        private IEnumerable<MailModel> GetDeletedMails(
             List<UniqueId> allMailUniqueIds, IEnumerable<MailModel> savedMails, out int indexToStartProcessFrom)
         {
             indexToStartProcessFrom = 0;
-            bool stopCount = false;
             List<MailModel> deletedMails = new();
             foreach (MailModel savedMail in savedMails)
             {
@@ -147,34 +156,24 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                 if (tempIndex == -1)
                 {
                     deletedMails.Add(savedMail);
-                    savedMail.Processed = true;
                 }
                 else
                 {
-                    if (!stopCount)
-                    {
-                        indexToStartProcessFrom = tempIndex;
-                    }
-
-                    if (!savedMail.Processed)
-                    {
-                        stopCount = true;
-                    }
+                    indexToStartProcessFrom = tempIndex;
                 }
             }
 
             return deletedMails;
         }
 
-        private async Task SendUnProcessedMailsToPrint(IMailFolder folder, IEnumerable<MailModel> savedMails, IEnumerable<MailModel> deletedEmails)
+        private async Task SendNewMailsToPrint(IMailFolder folder, IEnumerable<MailModel> newMails, IEnumerable<MailModel> deletedMails)
         {
-            foreach (MailModel mailToProcess in savedMails.Where(x => !x.Processed))
+            foreach (MailModel newMail in newMails)
             {
-                MimeMessage message = await folder.GetMessageAsync(new UniqueId(mailToProcess.Id));
+                MimeMessage message = await folder.GetMessageAsync(new UniqueId(newMail.Id));
                 if (message == null)
                 {
-                    deletedEmails.Append(mailToProcess);
-                    mailToProcess.Processed = true;
+                    deletedMails.Append(newMail);
                     continue;
                 }
 
@@ -184,7 +183,6 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                 TelegramMessageDTO? printMailDTO = null;
                 if (!message.From.Mailboxes.Any(_ => _.Address.Contains(_ukrnetConfig.SentFrom)) || text == null)
                 {
-                    mailToProcess.Processed = true;
                     continue;
                 }
 
@@ -192,7 +190,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                     || text.Contains("щодо державної реєстрації земельної ділянки створена"))
                 {
                     printMailDTO = ProcessMail(
-                        mailToProcess,
+                        newMail,
                         text,
                         new() { "Вітаємо, шановний(а) " },
                         "\\r\\n",
@@ -202,7 +200,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                 else if (text.Contains("щодо державної реєстрації земельної ділянки опрацьовано"))
                 {
                     printMailDTO = ProcessMail(
-                        mailToProcess,
+                        newMail,
                         text,
                         new() { "Шановний(а) " },
                         ", заяву ",
@@ -212,7 +210,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                 else if (text.ToLower().Contains("про внесення відомостей (змін до них) до державного земельного кадастру за кадастровим номером"))
                 {
                     printMailDTO = ProcessMail(
-                        mailToProcess,
+                        newMail,
                         text,
                         new() { "Вітаємо, шановний(а) " },
                         "\\r\\n",
@@ -222,7 +220,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                 else if (text.ToLower().Contains("про внесення виправлених відомостей до державного земельного кадастру"))
                 {
                     printMailDTO = ProcessMail(
-                        mailToProcess,
+                        newMail,
                         text,
                         new() { "Вітаємо, шановний(а) " },
                         "\\r\\n",
@@ -234,7 +232,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                     if (text.Contains("За результатами опрацювання"))
                     {
                         printMailDTO = ProcessMail(
-                            mailToProcess,
+                            newMail,
                             text,
                             new() { "Шановний(а) ", "Шановний" },
                             ", Заява/Повідомлення",
@@ -244,7 +242,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                     else
                     {
                         printMailDTO = ProcessMail(
-                            mailToProcess,
+                            newMail,
                             text,
                             new() { "Шановний(а) ", "Шановний" },
                             ", Заява/Повідомлення",
@@ -257,14 +255,12 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                 {
                     await _telegramMessageChannel.QueueAsync(printMailDTO);
                 }
-
-                mailToProcess.Processed = true;
             }
         }
 
-        private async Task SendDeletedMailsToPrint(IEnumerable<MailModel> deletedEmails, LinkedList<MailModel> savedMails)
+        private async Task SendDeletedMailsToPrint(IEnumerable<MailModel> deletedMails, LinkedList<MailModel> savedMails)
         {
-            foreach (MailModel deletedMail in deletedEmails)
+            foreach (MailModel deletedMail in deletedMails)
             {
                 string message = deletedMail.Message != null
                     ? "Було видалено: " + deletedMail.Message.TrimStart() + "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
