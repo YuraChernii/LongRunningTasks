@@ -75,7 +75,8 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             LinkedList<MailModel> savedMails = await GetSavedMailsAsync(file, driveService);
 
             IEnumerable<MailModel> deletedMails = GetDeletedMails(allMailUniqueIds, savedMails, out int indexToStartProcessFrom);
-            IEnumerable<MailModel> newMails = ProcessNewMails(savedMails, indexToStartProcessFrom, allMailUniqueIds);
+            IEnumerable<MailModel> newMails = GetNewMails(savedMails, indexToStartProcessFrom, allMailUniqueIds);
+            savedMails = new(savedMails.Concat(newMails).TakeLast(_googleDriveConfig.Capacity));
 
             await SendNewMailsToPrint(folder, newMails, deletedMails);
             await SendDeletedMailsToPrint(deletedMails, savedMails);
@@ -92,29 +93,35 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             return summaries.Select(_ => _.UniqueId).ToList();
         }
 
-        private IEnumerable<MailModel> ProcessNewMails(LinkedList<MailModel> savedMails, int indexToStartProcessFrom, List<UniqueId> allMailUniqueIds)
+        private IEnumerable<MailModel> GetDeletedMails(
+            List<UniqueId> allMailUniqueIds, IEnumerable<MailModel> savedMails, out int indexToStartProcessFrom)
         {
-            MailModel? firstNewMail = null;
-            for (int i = indexToStartProcessFrom; i < allMailUniqueIds.Count; i++)
+            indexToStartProcessFrom = 0;
+            List<MailModel> deletedMails = new();
+            foreach (MailModel savedMail in savedMails)
             {
-                if (!savedMails.Any(x => x.Id == allMailUniqueIds[i].Id))
+                int tempIndex = allMailUniqueIds.FindIndex(id => id.Id == savedMail.Id);
+                if (tempIndex == -1)
                 {
-                    MailModel newMail = new() { Id = allMailUniqueIds[i].Id };
-                    firstNewMail ??= newMail;
-                    savedMails.AddLast(newMail);
-
-                    if (savedMails.Count > 200)
-                    {
-                        savedMails.RemoveFirst();
-                    }
+                    deletedMails.Add(savedMail);
+                }
+                else
+                {
+                    indexToStartProcessFrom = tempIndex;
                 }
             }
 
-            return firstNewMail != null
-                ? savedMails.Contains(firstNewMail)
-                    ? savedMails.SkipWhile(item => item != firstNewMail)
-                    : savedMails
-                : Enumerable.Empty<MailModel>();
+            return deletedMails;
+        }
+
+        private IEnumerable<MailModel> GetNewMails(IEnumerable<MailModel> savedMails, int indexToStartProcessFrom, List<UniqueId> allMailUniqueIds)
+        {
+            IEnumerable<MailModel> newMails = allMailUniqueIds
+                .Skip(indexToStartProcessFrom)
+                .Where(id => !savedMails.Any(x => x.Id == id.Id))
+                .Select(id => new MailModel { Id = id.Id });
+
+            return newMails.TakeLast(_googleDriveConfig.Capacity);
         }
 
         private TelegramMessageDTO ProcessMail(MailModel mailToProcess, string text, List<string> prefixsToRemove, string cutOffMarker, MailMessageType messageType)
@@ -146,27 +153,6 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             string? allFileText = reader.ReadToEnd();
 
             return JsonSerializer.Deserialize<LinkedList<MailModel>>(allFileText) ?? new();
-        }
-
-        private IEnumerable<MailModel> GetDeletedMails(
-            List<UniqueId> allMailUniqueIds, IEnumerable<MailModel> savedMails, out int indexToStartProcessFrom)
-        {
-            indexToStartProcessFrom = 0;
-            List<MailModel> deletedMails = new();
-            foreach (MailModel savedMail in savedMails)
-            {
-                int tempIndex = allMailUniqueIds.FindIndex(id => id.Id == savedMail.Id);
-                if (tempIndex == -1)
-                {
-                    deletedMails.Add(savedMail);
-                }
-                else
-                {
-                    indexToStartProcessFrom = tempIndex;
-                }
-            }
-
-            return deletedMails;
         }
 
         private async Task SendNewMailsToPrint(IMailFolder folder, IEnumerable<MailModel> newMails, IEnumerable<MailModel> deletedMails)

@@ -10,5 +10,6 @@
         public string ClientSecret { get; set; }
         public string ApplicationName { get; set; }
         public string Username { get; set; }
+        public int Capacity { get; set; }
     }
 }
