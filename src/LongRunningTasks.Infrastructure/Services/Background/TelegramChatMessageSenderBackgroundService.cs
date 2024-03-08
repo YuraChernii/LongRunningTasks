@@ -1,6 +1,7 @@
 ﻿using LongRunningTasks.Application.DTOs;
 using LongRunningTasks.Application.Services;
 using LongRunningTasks.Core.Enums;
+using LongRunningTasks.Core.Models;
 using LongRunningTasks.Infrastructure.Configs;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -8,16 +9,16 @@ using Telegram.Bot;
 
 namespace LongRunningTasks.Infrastructure.Services.Background
 {
-    internal class TelegramChatMessageSenderBackgroundService : BaseBackgroundService<UrknetMailParserBackgroundService>
+    internal class TelegramChatMessageSenderBackgroundService : BaseBackgroundService<TelegramChatMessageSenderBackgroundService>
     {
         private readonly IChannelService<TelegramMessageDTO> _telegramMessageChannel;
         private readonly ITelegramBotClient _telegramBotClient;
         private readonly TelegramConfig _telegramConfig;
         private readonly IRetryService _retryService;
-        private readonly LinkedList<uint> _processedIds = new();
+        private readonly LinkedList<ProcessedMessage> _processedMessages = new();
 
         public TelegramChatMessageSenderBackgroundService(
-            ILogger<UrknetMailParserBackgroundService> logger,
+            ILogger<TelegramChatMessageSenderBackgroundService> logger,
             IExceptionTelegramService exceptionTelegramService,
             IChannelService<TelegramMessageDTO> telegramMessageChannel,
             ITelegramBotClient telegramBotClient,
@@ -35,7 +36,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
         {
             TelegramMessageDTO mail = await _telegramMessageChannel.DequeueAsync(cancellationToken);
 
-            if (mail.Id.HasValue && !EnsureUniqueMessage(mail.Id.Value))
+            if (!EnsureUniqueMessage(mail))
             {
                 return;
             }
@@ -54,17 +55,21 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             );
         }
 
-        private bool EnsureUniqueMessage(uint id)
+        private bool EnsureUniqueMessage(TelegramMessageDTO message)
         {
-            if (_processedIds.Contains(id))
+            if (_processedMessages.Any(x => x.Id == message.Id && x.MailAction == message.MailAction))
             {
                 return false;
             }
 
-            _processedIds.AddLast(id);
-            if (_processedIds.Count > 20)
+            _processedMessages.AddLast(new ProcessedMessage()
             {
-                _processedIds.RemoveFirst();
+                Id = message.Id,
+                MailAction = message.MailAction
+            });
+            if (_processedMessages.Count > 20)
+            {
+                _processedMessages.RemoveFirst();
             }
 
             return true;

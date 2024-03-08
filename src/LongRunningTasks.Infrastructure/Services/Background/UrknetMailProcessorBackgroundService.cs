@@ -1,5 +1,4 @@
-﻿using Google.Apis.Drive.v3;
-using LongRunningTasks.Application.DTOs;
+﻿using LongRunningTasks.Application.DTOs;
 using LongRunningTasks.Application.Services;
 using LongRunningTasks.Core.Enums;
 using LongRunningTasks.Core.Models;
@@ -8,6 +7,7 @@ using LongRunningTasks.Infrastructure.Constants;
 using LongRunningTasks.Infrastructure.Utilities;
 using MailKit;
 using MailKit.Net.Imap;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
@@ -24,6 +24,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
         private readonly IChannelService<UkrnetMailDTO> _processMailChannel;
         private readonly IChannelService<TelegramMessageDTO> _telegramMessageChannel;
         private readonly ImapClient _client;
+        private readonly IServiceScopeFactory _serviceScopeFactory;
 
         public UrknetMailProcessorBackgroundService(
             IOptions<GoogleDriveConfig> googleDriveConfig,
@@ -31,7 +32,8 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             IChannelService<UkrnetMailDTO> processMailChannel,
             ILogger<UrknetMailProcessorBackgroundService> logger,
             IChannelService<TelegramMessageDTO> telegramMessageChannel,
-            IExceptionTelegramService exceptionTelegramService)
+            IExceptionTelegramService exceptionTelegramService,
+            IServiceScopeFactory serviceScopeFactory)
             : base(logger, exceptionTelegramService)
         {
             _googleDriveConfig = googleDriveConfig.Value;
@@ -39,6 +41,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             _processMailChannel = processMailChannel;
             _client = UkrNetUtility.CreateClient();
             _telegramMessageChannel = telegramMessageChannel;
+            _serviceScopeFactory = serviceScopeFactory;
         }
 
         protected override async Task TryExecuteAsync(CancellationToken cancellationToken)
@@ -70,9 +73,10 @@ namespace LongRunningTasks.Infrastructure.Services.Background
         {
             List<UniqueId> allMailUniqueIds = await GetAllMailUniqueIds(folder);
 
-            DriveService driveService = DriveServiceFactory.GetService(_googleDriveConfig);
-            File? file = await driveService.FindFileByNameAsync(_googleDriveConfig.FileName);
-            LinkedList<MailModel> savedMails = await GetSavedMailsAsync(file, driveService);
+            using AsyncServiceScope scope = _serviceScopeFactory.CreateAsyncScope();
+            IGoogleDriveService googleDriveService = scope.ServiceProvider.GetRequiredService<IGoogleDriveService>();
+            File? file = await googleDriveService.FindFileByNameAsync(_googleDriveConfig.FileNames.Base);
+            LinkedList<MailModel> savedMails = await googleDriveService.GetDataAsync<LinkedList<MailModel>>(file);
 
             IEnumerable<MailModel> deletedMails = GetDeletedMails(allMailUniqueIds, savedMails, out int indexToStartProcessFrom);
             IEnumerable<MailModel> newMails = GetNewMails(savedMails, indexToStartProcessFrom, allMailUniqueIds);
@@ -81,7 +85,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             await SendNewMailsToPrint(folder, newMails, deletedMails);
             await SendDeletedMailsToPrint(deletedMails, savedMails);
 
-            await SaveMailsToGoogleDrive(savedMails, file, driveService);
+            await SaveMailsToGoogleDrive(savedMails, file, googleDriveService);
 
             previousProcessingCompleted = true;
         }
@@ -136,23 +140,9 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             {
                 Id = mailToProcess.Id,
                 Message = textToPrint,
-                MessageType = messageType
+                MessageType = messageType,
+                MailAction = MailActionType.New
             };
-        }
-
-        private async Task<LinkedList<MailModel>> GetSavedMailsAsync(File? file, DriveService driveService)
-        {
-            if (file == null)
-            {
-                return new();
-            }
-
-            Stream? stream = await driveService.GetFileStreamAsync(file);
-            stream!.Position = 0;
-            StreamReader reader = new(stream);
-            string? allFileText = reader.ReadToEnd();
-
-            return JsonSerializer.Deserialize<LinkedList<MailModel>>(allFileText) ?? new();
         }
 
         private async Task SendNewMailsToPrint(IMailFolder folder, IEnumerable<MailModel> newMails, IEnumerable<MailModel> deletedMails)
@@ -256,14 +246,16 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                     : $"Було видалено email з id: {deletedMail.Id}";
                 await _telegramMessageChannel.QueueAsync(new()
                 {
+                    Id = deletedMail.Id,
                     Message = message,
-                    MessageType = deletedMail.MessageType
+                    MessageType = deletedMail.MessageType,
+                    MailAction = MailActionType.Deleted
                 });
                 savedMails.Remove(deletedMail);
             }
         }
 
-        private async Task SaveMailsToGoogleDrive(IEnumerable<MailModel> mails, File? file, DriveService driveService)
+        private async Task SaveMailsToGoogleDrive(IEnumerable<MailModel> mails, File? file, IGoogleDriveService driveService)
         {
             if (!mails.Any())
             {
@@ -274,17 +266,17 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             JsonSerializer.Serialize(memoryStream, mails);
             if (file == null)
             {
-                await driveService.CreateFileAsync(memoryStream, _googleDriveConfig.FileName, _googleDriveConfig.FileMime);
+                await driveService.CreateFileAsync(memoryStream, _googleDriveConfig.FileNames.Base, _googleDriveConfig.FileMime);
             }
             else
             {
-                await driveService.UpdateFileAsync(file, memoryStream, _googleDriveConfig.FileName, _googleDriveConfig.FileMime);
+                await driveService.UpdateFileAsync(file, memoryStream, _googleDriveConfig.FileNames.Base, _googleDriveConfig.FileMime);
             }
         }
 
         protected async override Task CatchAsync()
         {
-            await _client.SignOutAsync();
+            try { await _client.SignOutAsync(); } catch { }
         }
 
         public override async Task StopAsync(CancellationToken stoppingToken)

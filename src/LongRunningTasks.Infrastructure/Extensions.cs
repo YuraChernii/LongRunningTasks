@@ -21,7 +21,9 @@ namespace LongRunningTasks.Infrastructure
 
         private static IServiceCollection AddConfigMapping(this IServiceCollection services, IConfiguration config)
         {
+            services.Configure<GoogleApplicationConfig>(config.GetSection("GoogleApplication"));
             services.Configure<GoogleDriveConfig>(config.GetSection("GoogleDrive"));
+            services.Configure<GoogleSheetsConfig>(config.GetSection("GoogleSheets"));
             services.Configure<TelegramConfig>(config.GetSection("Telegram"));
             services.Configure<UkrnetConfig>(config.GetSection("Ukrnet"));
 
@@ -29,12 +31,20 @@ namespace LongRunningTasks.Infrastructure
         }
 
         private static IServiceCollection AddServices(this IServiceCollection services, IConfiguration config) => services
-            .AddTransient<IRetryService, RetryService>()
+            .AddTransient<IGoogleDriveService, GoogleDriveService>()
+            .AddTransient<IGoogleSheetsService, GoogleSheetsService>()
+            .AddSingleton<IRetryService, RetryService>()
             .AddSingleton<IExceptionTelegramService, ExceptionTelegramService>()
             .AddChannelService<UkrnetMailDTO>(config)
             .AddChannelService<TelegramMessageDTO>(config)
             .AddSingleton<ITelegramBotClient>(new TelegramBotClient(config["Telegram:BotToken"]!))
             .AddHostedServices();
+
+        private static IServiceCollection AddHostedServices(this IServiceCollection services) => services
+            .AddHostedService<UrknetMailParserBackgroundService>()
+            .AddHostedService<UrknetMailProcessorBackgroundService>()
+            .AddHostedService<TelegramChatMessageSenderBackgroundService>()
+            .AddHostedService<MailAggregatorBackgroundService>();
 
         private static IServiceCollection AddChannelService<T>(this IServiceCollection services, IConfiguration config) => services
             .AddSingleton<IChannelService<T>>(ctx =>
@@ -46,10 +56,5 @@ namespace LongRunningTasks.Infrastructure
 
                 return new ChannelService<T>(queueCapacity);
             });
-
-        private static IServiceCollection AddHostedServices(this IServiceCollection services) => services
-            .AddHostedService<UrknetMailParserBackgroundService>()
-            .AddHostedService<UrknetMailProcessorBackgroundService>()
-            .AddHostedService<TelegramChatMessageSenderBackgroundService>();
     }
 }

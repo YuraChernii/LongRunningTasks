@@ -9,7 +9,8 @@
   <ItemGroup>
 	  <FrameworkReference Include="Microsoft.AspNetCore.App" />
 	  <PackageReference Include="AutoMapper" Version="12.0.0" />
-	  <PackageReference Include="Google.Apis.Drive.v3" Version="1.59.0.2958" />
+	  <PackageReference Include="Google.Apis.Drive.v3" Version="1.67.0.3309" />
+	  <PackageReference Include="Google.Apis.Sheets.v4" Version="1.67.0.3148" />
 	  <PackageReference Include="Hangfire" Version="1.7.32" />
 	  <PackageReference Include="MailKit" Version="3.4.3" />
 	  <PackageReference Include="Microsoft.EntityFrameworkCore" Version="7.0.1" />

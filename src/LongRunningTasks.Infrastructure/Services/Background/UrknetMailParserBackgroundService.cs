@@ -40,7 +40,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
 
         protected async override Task CatchAsync()
         {
-            await _client.SignOutAsync();
+            try { await _client.SignOutAsync(); } catch { }
         }
 
         public override async Task StopAsync(CancellationToken cancellationToken)
