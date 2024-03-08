@@ -10,11 +10,7 @@
 	  <FrameworkReference Include="Microsoft.AspNetCore.App" />
 	  <PackageReference Include="Google.Apis.Drive.v3" Version="1.67.0.3309" />
 	  <PackageReference Include="Google.Apis.Sheets.v4" Version="1.67.0.3148" />
-	  <PackageReference Include="Hangfire.Core" Version="1.7.32" />
-	  <PackageReference Include="MailKit" Version="3.4.3" />
-	  <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.0.0" />
-	  <PackageReference Include="RabbitMQ.Client" Version="6.4.0" />
-	  <PackageReference Include="System.Reactive" Version="5.0.0" />
+	  <PackageReference Include="MailKit" Version="4.4.0" />
   </ItemGroup>
 
   <ItemGroup>
