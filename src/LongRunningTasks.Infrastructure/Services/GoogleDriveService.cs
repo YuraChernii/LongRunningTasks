@@ -29,7 +29,7 @@ namespace LongRunningTasks.Infrastructure.Services
             FilesResource.ListRequest request = _driveService.Files.List();
             FileList fileMetaData = await request.ExecuteAsync();
 
-            return fileMetaData.Files.FirstOrDefault(x => x.Name.Contains(name));
+            return fileMetaData.Files.FirstOrDefault(x => x.Name == name);
         }
 
         public async Task<string> UpdateFileAsync(
