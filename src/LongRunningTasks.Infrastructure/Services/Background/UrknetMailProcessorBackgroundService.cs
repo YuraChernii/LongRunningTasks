@@ -78,8 +78,8 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             File? file = await googleDriveService.FindFileByNameAsync(_googleDriveConfig.FileNames.Base);
             LinkedList<MailModel> savedMails = await googleDriveService.GetDataAsync<LinkedList<MailModel>>(file);
 
-            IEnumerable<MailModel> deletedMails = GetDeletedMails(allMailUniqueIds, savedMails, out int indexToStartProcessFrom);
-            IEnumerable<MailModel> newMails = GetNewMails(savedMails, indexToStartProcessFrom, allMailUniqueIds);
+            List<MailModel> deletedMails = GetDeletedMails(allMailUniqueIds, savedMails, out int indexToStartProcessFrom).ToList();
+            List<MailModel> newMails = GetNewMails(savedMails, indexToStartProcessFrom, allMailUniqueIds).ToList();
             savedMails = new(savedMails.Concat(newMails).TakeLast(_googleDriveConfig.Capacity));
 
             await SendNewMailsToPrint(folder, newMails, deletedMails);
@@ -131,8 +131,8 @@ namespace LongRunningTasks.Infrastructure.Services.Background
         private TelegramMessageDTO ProcessMail(MailModel mailToProcess, string text, List<string> prefixsToRemove, string cutOffMarker, MailMessageType messageType)
         {
             int index = text.IndexOf(cutOffMarker) - (cutOffMarker == "\\r\\n" ? 1 : 0);
-            string textToPrint = index >= 0 ? text.Substring(0, index) : text;
-            prefixsToRemove.ForEach(prefix => textToPrint = textToPrint.Replace(prefix, string.Empty));
+            string textToPrint = index >= 0 ? text.Substring(0, index).TrimEnd() : text;
+            prefixsToRemove.ForEach(prefix => textToPrint = textToPrint.Replace(prefix, string.Empty).TrimStart());
             mailToProcess.Message = textToPrint;
             mailToProcess.MessageType = messageType;
 
@@ -145,14 +145,14 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             };
         }
 
-        private async Task SendNewMailsToPrint(IMailFolder folder, IEnumerable<MailModel> newMails, IEnumerable<MailModel> deletedMails)
+        private async Task SendNewMailsToPrint(IMailFolder folder, List<MailModel> newMails, List<MailModel> deletedMails)
         {
             foreach (MailModel newMail in newMails)
             {
                 MimeMessage message = await folder.GetMessageAsync(new UniqueId(newMail.Id));
                 if (message == null)
                 {
-                    deletedMails.Append(newMail);
+                    deletedMails.Add(newMail);
                     continue;
                 }
 

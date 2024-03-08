@@ -60,7 +60,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                 {
                     if (!group.SformovanaIds.Contains(savedMail.Id))
                     {
-                        group.SformovanaIds.Append(savedMail.Id);
+                        group.SformovanaIds.Add(savedMail.Id);
                     }
                 }
                 else
@@ -68,7 +68,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                     savedGroups.Add(new MailGroup()
                     {
                         Key = savedMail.Message,
-                        SformovanaIds = new[] { savedMail.Id },
+                        SformovanaIds = new() { savedMail.Id },
                         Created = now
                     });
                 }
@@ -81,7 +81,7 @@ namespace LongRunningTasks.Infrastructure.Services.Background
                 {
                     if (!group.OpracovanaIds.Contains(savedMail.Id))
                     {
-                        group.OpracovanaIds.Append(savedMail.Id);
+                        group.OpracovanaIds.Add(savedMail.Id);
                     }
                 }
             }
@@ -157,8 +157,8 @@ namespace LongRunningTasks.Infrastructure.Services.Background
         public class MailGroup
         {
             public string Key { get; set; }
-            public IEnumerable<uint> SformovanaIds { get; set; } = Enumerable.Empty<uint>();
-            public IEnumerable<uint> OpracovanaIds { get; set; } = Enumerable.Empty<uint>();
+            public List<uint> SformovanaIds { get; set; } = new();
+            public List<uint> OpracovanaIds { get; set; } = new();
             public DateTime Created { get; set; }
         }
     }
