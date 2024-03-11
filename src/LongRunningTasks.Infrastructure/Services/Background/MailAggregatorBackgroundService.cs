@@ -55,28 +55,30 @@ namespace LongRunningTasks.Infrastructure.Services.Background
             DateTime now = DateTime.UtcNow;
             foreach (MailModel savedMail in savedMails.Where(x => x.MessageType == MailMessageType.Sformovana))
             {
-                MailGroup? group = savedGroups.FirstOrDefault(x => x.Key == savedMail.Message && x.Created.AddHours(2) > now);
-                if (group != null)
+                List<MailGroup> groups = savedGroups.Where(x => x.Key == savedMail.Message).ToList();
+                bool mailIsInGroup = groups.Where(group => group.SformovanaIds.Contains(savedMail.Id)).Any();
+                if (!mailIsInGroup)
                 {
-                    if (!group.SformovanaIds.Contains(savedMail.Id))
+                    MailGroup? lastGroup = groups.LastOrDefault();
+                    if (lastGroup != null && lastGroup.Created.AddDays(1) < now)
                     {
-                        group.SformovanaIds.Add(savedMail.Id);
+                        lastGroup.SformovanaIds.Add(savedMail.Id);
                     }
-                }
-                else
-                {
-                    savedGroups.Add(new MailGroup()
+                    else
                     {
-                        Key = savedMail.Message,
-                        SformovanaIds = new() { savedMail.Id },
-                        Created = now
-                    });
+                        savedGroups.Add(new()
+                        {
+                            Key = savedMail.Message,
+                            SformovanaIds = new() { savedMail.Id },
+                            Created = now
+                        });
+                    }
                 }
             }
 
             foreach (MailModel savedMail in savedMails.Where(x => x.MessageType == MailMessageType.Opracovana))
             {
-                MailGroup? group = savedGroups.FirstOrDefault(x => x.Key == savedMail.Message);
+                MailGroup? group = savedGroups.LastOrDefault(x => x.Key == savedMail.Message);
                 if (group != null)
                 {
                     if (!group.OpracovanaIds.Contains(savedMail.Id))

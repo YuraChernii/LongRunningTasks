@@ -43,8 +43,8 @@ namespace LongRunningTasks.Infrastructure
         private static IServiceCollection AddHostedServices(this IServiceCollection services) => services
             .AddHostedService<UrknetMailParserBackgroundService>()
             .AddHostedService<UrknetMailProcessorBackgroundService>()
-            .AddHostedService<TelegramChatMessageSenderBackgroundService>()
-            .AddHostedService<MailAggregatorBackgroundService>();
+            .AddHostedService<TelegramChatMessageSenderBackgroundService>();
+            //.AddHostedService<MailAggregatorBackgroundService>();
 
         private static IServiceCollection AddChannelService<T>(this IServiceCollection services, IConfiguration config) => services
             .AddSingleton<IChannelService<T>>(ctx =>
